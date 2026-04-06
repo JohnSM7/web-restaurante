@@ -1,0 +1,47 @@
+---
+// Navigation component
+---
+<nav class="nav" id="main-nav" role="navigation" aria-label="Navegación principal">
+  <a href="/" class="nav__logo" aria-label="THE EDITORIAL Mediterranean - Inicio">
+    THE EDITORIAL
+  </a>
+
+  <!-- Desktop links -->
+  <ul class="nav__links" role="list" style="display:none;" id="desktop-links">
+    <li><a href="#inicio">Inicio</a></li>
+    <li><a href="#nosotros">Nosotros</a></li>
+    <li><a href="#carta">Carta</a></li>
+    <li><a href="#experiencia">Experiencia</a></li>
+    <li><a href="#testimonios">Reseñas</a></li>
+    <li><a href="#blog">Blog</a></li>
+    <li><a href="#ubicacion">Ubicación</a></li>
+  </ul>
+
+  <a href="#reservas" class="btn-primary nav__cta" id="nav-reserve-btn" aria-label="Reservar mesa ahora">
+    Reservar mesa
+  </a>
+
+  <button class="nav__hamburger" id="hamburger" aria-label="Abrir menú" aria-expanded="false" type="button">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+</nav>
+
+<!-- Mobile fullscreen menu -->
+<div class="nav__mobile-menu" id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menú de navegación">
+  <a href="#inicio">Inicio</a>
+  <a href="#nosotros">Nosotros</a>
+  <a href="#carta">Carta</a>
+  <a href="#experiencia">Experiencia</a>
+  <a href="#testimonios">Reseñas</a>
+  <a href="#blog">Blog</a>
+  <a href="#ubicacion">Ubicación</a>
+  <a href="#reservas" class="btn-primary" style="margin-top:1rem;">Reservar mesa</a>
+</div>
+
+<style>
+  @media (min-width: 1024px) {
+    #desktop-links { display: flex !important; }
+  }
+</style>

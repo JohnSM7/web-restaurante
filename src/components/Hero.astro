@@ -1,0 +1,140 @@
+---
+// Hero section - "THE EDITORIAL"
+---
+<section class="hero" id="inicio" aria-label="Bienvenida al restaurante The Editorial">
+  <div class="hero__bg">
+    <img
+      src="/hero.png"
+      alt="Alta cocina mediterránea en Madrid – plato elaborado con ingredientes frescos del Mediterráneo"
+      class="hero__img"
+      fetchpriority="high"
+      width="1920"
+      height="1080"
+    />
+    <div class="hero__overlay" aria-hidden="true"></div>
+  </div>
+
+  <div class="hero__content container">
+    <p class="label-lg hero__label animate-fade-up gold">Madrid · Barrio de Salamanca · Desde 1984</p>
+
+    <h1 class="display-lg hero__title animate-fade-up delay-1">
+      Auténtica cocina<br />
+      <span class="italic">mediterránea</span><br />
+      en Madrid
+    </h1>
+
+    <p class="body-lg hero__subtitle animate-fade-up delay-2">
+      Tradición, calidad y sabor en cada plato. Un viaje sensorial<br class="hide-mobile" />
+      por las costas del Mediterráneo sin salir del corazón de la capital.
+    </p>
+
+    <div class="hero__actions animate-fade-up delay-3">
+      <a href="#reservas" class="btn-primary" id="hero-reserve-btn">Reservar mesa</a>
+      <a href="#carta" class="btn-ghost" id="hero-menu-btn">Ver carta</a>
+    </div>
+
+    <div class="hero__badge animate-fade-up delay-4" aria-label="Desde 1984, legado de excelencia culinaria en Madrid">
+      <span class="label-md muted">1984</span>
+      <p class="body-md">Legado de excelencia<br/>culinaria en Madrid</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: var(--sp-20);
+    overflow: hidden;
+  }
+
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hero__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    filter: grayscale(25%);
+  }
+
+  .hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 10%, rgba(0,0,0,0.35) 60%),
+                linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+  }
+
+  .hero__content {
+    position: relative;
+    z-index: 1;
+    color: #f0f1f1;
+    display: grid;
+    gap: var(--sp-6);
+    max-width: 800px;
+  }
+
+  .hero__label {
+    color: var(--gold-light);
+  }
+
+  .hero__title {
+    color: var(--inverse-on-surface);
+  }
+
+  .hero__subtitle {
+    color: rgba(240, 241, 241, 0.78);
+    max-width: 540px;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-4);
+  }
+
+  .hero__actions .btn-ghost {
+    color: var(--inverse-on-surface);
+    border-color: rgba(240,241,241,0.4);
+  }
+
+  .hero__actions .btn-ghost:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(240,241,241,0.8);
+  }
+
+  .hero__badge {
+    margin-top: var(--sp-8);
+    padding-top: var(--sp-6);
+    border-top: 1px solid rgba(240,241,241,0.15);
+    display: grid;
+    gap: var(--sp-1);
+  }
+
+  .hero__badge .muted {
+    color: var(--gold-light);
+  }
+
+  .hero__badge p {
+    color: rgba(240,241,241,0.6);
+  }
+
+  @media (min-width: 768px) {
+    .hero__content {
+      padding-bottom: var(--sp-4);
+    }
+  }
+
+  .hide-mobile {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .hide-mobile { display: block; }
+  }
+</style>

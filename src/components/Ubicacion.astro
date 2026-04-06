@@ -1,0 +1,148 @@
+---
+// Ubicacion section
+---
+<section class="ubicacion section" id="ubicacion" aria-labelledby="ubicacion-heading">
+  <div class="container ubicacion__grid">
+    <div class="ubicacion__info">
+      <p class="label-md muted reveal">Cómo llegar</p>
+      <h2 class="headline-lg reveal delay-1" id="ubicacion-heading">
+        En el corazón<br />
+        <span class="italic">de Salamanca.</span>
+      </h2>
+
+      <address class="ubicacion__address reveal delay-2">
+        <div class="ubicacion__dato">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <div>
+            <p class="label-md">Dirección</p>
+            <p class="body-md">Calle de Serrano, 42<br />28001 Madrid — Barrio de Salamanca</p>
+          </div>
+        </div>
+
+        <div class="ubicacion__dato">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.6a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.6a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <div>
+            <p class="label-md">Teléfono</p>
+            <a href="tel:+34912345678" class="body-md">+34 912 345 678</a>
+          </div>
+        </div>
+
+        <div class="ubicacion__dato">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <div>
+            <p class="label-md">Horarios</p>
+            <div class="body-md">
+              <p>Lunes – Jueves: 13:30–16:30 · 20:30–23:30</p>
+              <p>Viernes – Sábado: 13:30–17:00 · 20:30–00:00</p>
+              <p>Domingo: 13:30–17:00 · Cerrado por la noche</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ubicacion__dato">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          <div>
+            <p class="label-md">Acceso</p>
+            <p class="body-md">Metro: Serrano (L4) · Autobús: 1, 9, 19, 51<br />Parking concertado a 50 metros</p>
+          </div>
+        </div>
+      </address>
+
+      <a
+        href="https://maps.google.com/?q=Calle+de+Serrano+42+Madrid"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-primary reveal delay-3"
+        style="display:inline-flex;margin-top:var(--sp-4);"
+        id="map-directions-btn"
+      >
+        Cómo llegar
+      </a>
+    </div>
+
+    <div class="ubicacion__map reveal delay-2">
+      <iframe
+        title="Mapa de ubicación de THE EDITORIAL en Madrid - Calle de Serrano 42"
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3036.7527975555!2d-3.6887!3d40.4264!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd422898e7bU!2sCalle+de+Serrano%2C+42%2C+28001+Madrid!5e0!3m2!1ses!2ses!4v1"
+        width="100%"
+        height="100%"
+        style="border:0;"
+        allowfullscreen
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+      ></iframe>
+    </div>
+  </div>
+</section>
+
+<style>
+  .ubicacion {
+    background: var(--surface-container-lowest);
+  }
+
+  .ubicacion__grid {
+    display: grid;
+    gap: var(--sp-16);
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .ubicacion__grid {
+      grid-template-columns: 420px 1fr;
+    }
+  }
+
+  .ubicacion__info {
+    display: grid;
+    gap: var(--sp-8);
+  }
+
+  .ubicacion__address {
+    display: grid;
+    gap: var(--sp-6);
+    font-style: normal;
+  }
+
+  .ubicacion__dato {
+    display: flex;
+    gap: var(--sp-4);
+    align-items: flex-start;
+    padding-bottom: var(--sp-6);
+    border-bottom: 1px solid var(--outline-variant);
+  }
+
+  .ubicacion__dato svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: var(--gold);
+    margin-top: 2px;
+  }
+
+  .ubicacion__dato div {
+    display: grid;
+    gap: var(--sp-2);
+  }
+
+  .ubicacion__dato a {
+    transition: opacity 0.2s;
+  }
+
+  .ubicacion__dato a:hover { opacity: 0.6; }
+
+  .ubicacion__map {
+    min-height: 480px;
+    background: var(--surface-container);
+    filter: grayscale(30%) contrast(1.05);
+    overflow: hidden;
+  }
+
+  .ubicacion__map:hover {
+    filter: grayscale(0%) contrast(1);
+  }
+
+  .ubicacion__map iframe {
+    min-height: 480px;
+    transition: filter 0.4s;
+  }
+</style>

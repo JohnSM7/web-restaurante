@@ -1,0 +1,137 @@
+---
+// Experiencia / Valores section
+const valores = [
+  {
+    num: '01',
+    titulo: 'Calidad de Ingredientes',
+    desc: 'Solo trabajamos con proveedores locales certificados. Nuestro aceite de oliva virgen extra llega directamente de olivares familiares andaluces. El marisco, fresco cada mañana del mercado de La Boquería.',
+  },
+  {
+    num: '02',
+    titulo: 'Ambiente Elegante',
+    desc: 'Un espacio diseñado para la intimidad y el disfrute pausado. Luz cálida, mesas espaciosas y una acústica que invita a la conversación. El ambiente exclusivo de un restaurante elegante en Madrid.',
+  },
+  {
+    num: '03',
+    titulo: 'Servicio Profesional',
+    desc: 'Nuestro equipo está formado y apasionado. El sommelier de sala guiará su elección de vinos. El maître conoce cada plato en profundidad. La excelencia no negocia.',
+  },
+  {
+    num: '04',
+    titulo: 'Experiencia Completa',
+    desc: 'Desde la primera copa de bienvenida hasta el café final, cada momento está cuidado. Reserve para ocasiones especiales, cenas de empresa o simplemente para vivir una noche inolvidable en Madrid.',
+  },
+];
+---
+
+<section class="experiencia" id="experiencia" aria-labelledby="experiencia-heading">
+  <div class="experiencia__header">
+    <div class="container">
+      <p class="label-md muted reveal">Experiencia gastronómica</p>
+      <h2 class="display-md reveal delay-1" id="experiencia-heading">
+        Cada detalle,<br />
+        <span class="italic">una declaración.</span>
+      </h2>
+    </div>
+  </div>
+
+  <div class="container experiencia__grid">
+    {valores.map((v, i) => (
+      <article class={`experiencia__card reveal delay-${i + 1}`} aria-label={v.titulo}>
+        <span class="label-md gold experiencia__num">{v.num}</span>
+        <h3 class="headline-sm experiencia__titulo">{v.titulo}</h3>
+        <p class="body-md muted">{v.desc}</p>
+      </article>
+    ))}
+  </div>
+
+  <div class="experiencia__marquee" aria-hidden="true">
+    <div class="experiencia__marquee-track">
+      {Array.from({ length: 4 }, () => (
+        <span>Mediterráneo · Madrid · Serrano · Aceite de Oliva · Producto Local · Cocina Artesanal · Ingredientes Frescos · Experiencia Gastronómica ·&nbsp;</span>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .experiencia {
+    background: var(--inverse-surface);
+    color: var(--inverse-on-surface);
+    padding: var(--sp-24) 0 0;
+    overflow: hidden;
+  }
+
+  .experiencia__header {
+    padding-bottom: var(--sp-16);
+  }
+
+  .experiencia__header .muted {
+    color: rgba(240,241,241,0.5);
+  }
+
+  .experiencia__header h2 {
+    color: var(--inverse-on-surface);
+  }
+
+  .experiencia__grid {
+    display: grid;
+    gap: var(--sp-1);
+  }
+
+  @media (min-width: 640px) {
+    .experiencia__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .experiencia__grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .experiencia__card {
+    background: rgba(255,255,255,0.04);
+    padding: var(--sp-8) var(--sp-6);
+    display: grid;
+    gap: var(--sp-4);
+    transition: background 0.25s;
+  }
+
+  .experiencia__card:hover {
+    background: rgba(255,255,255,0.07);
+  }
+
+  .experiencia__titulo {
+    color: var(--inverse-on-surface);
+  }
+
+  .experiencia__card .muted {
+    color: rgba(240,241,241,0.55);
+  }
+
+  /* Marquee */
+  .experiencia__marquee {
+    margin-top: var(--sp-16);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    white-space: nowrap;
+    padding: var(--sp-5) 0;
+  }
+
+  .experiencia__marquee-track {
+    display: inline-flex;
+    animation: marquee 30s linear infinite;
+    font-family: var(--font-serif);
+    font-size: 0.875rem;
+    font-style: italic;
+    letter-spacing: 0.05em;
+    color: rgba(240,241,241,0.3);
+  }
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+</style>

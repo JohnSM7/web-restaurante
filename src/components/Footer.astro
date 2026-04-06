@@ -1,0 +1,191 @@
+---
+// Footer component
+---
+<footer class="footer" role="contentinfo" aria-label="Pie de página del restaurante THE EDITORIAL">
+  <div class="container footer__grid">
+    <div class="footer__brand">
+      <p class="footer__logo">THE EDITORIAL</p>
+      <p class="body-md footer__tagline">
+        Alta cocina mediterránea en Madrid.<br />
+        Respeto por el producto, amor por la tradición.
+      </p>
+      <div class="footer__social" aria-label="Redes sociales">
+        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="footer__social-link label-md" aria-label="Instagram de THE EDITORIAL">IG</a>
+        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="footer__social-link label-md" aria-label="Facebook de THE EDITORIAL">FB</a>
+        <a href="https://tripadvisor.com" target="_blank" rel="noopener noreferrer" class="footer__social-link label-md" aria-label="TripAdvisor de THE EDITORIAL">TA</a>
+        <a href="https://g.page" target="_blank" rel="noopener noreferrer" class="footer__social-link label-md" aria-label="Google Maps de THE EDITORIAL">GM</a>
+      </div>
+    </div>
+
+    <div class="footer__col">
+      <h3 class="label-lg footer__col-title">Horarios</h3>
+      <dl class="footer__hours">
+        <div class="footer__hours-row">
+          <dt class="body-md">Lunes – Jueves</dt>
+          <dd class="body-md muted">13:30–16:30 · 20:30–23:30</dd>
+        </div>
+        <div class="footer__hours-row">
+          <dt class="body-md">Viernes – Sábado</dt>
+          <dd class="body-md muted">13:30–17:00 · 20:30–00:00</dd>
+        </div>
+        <div class="footer__hours-row">
+          <dt class="body-md">Domingo</dt>
+          <dd class="body-md muted">13:30–17:00</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="footer__col">
+      <h3 class="label-lg footer__col-title">Explorar</h3>
+      <nav aria-label="Navegación footer">
+        <ul class="footer__links" role="list">
+          <li><a href="#inicio" class="footer__link body-md">Inicio</a></li>
+          <li><a href="#nosotros" class="footer__link body-md">Sobre nosotros</a></li>
+          <li><a href="#carta" class="footer__link body-md">Carta</a></li>
+          <li><a href="#experiencia" class="footer__link body-md">Experiencia</a></li>
+          <li><a href="#blog" class="footer__link body-md">Blog</a></li>
+          <li><a href="#reservas" class="footer__link body-md">Reservas</a></li>
+          <li><a href="#ubicacion" class="footer__link body-md">Ubicación</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="footer__col">
+      <h3 class="label-lg footer__col-title">Contacto</h3>
+      <address class="footer__contact" style="font-style:normal;display:grid;gap:var(--sp-4);">
+        <a href="tel:+34912345678" class="footer__link body-md">+34 912 345 678</a>
+        <a href="mailto:reservas@theeditorial.es" class="footer__link body-md">reservas@theeditorial.es</a>
+        <p class="body-md muted">Calle de Serrano, 42<br />28001 Madrid</p>
+      </address>
+
+      <div class="footer__legal-links" style="margin-top:var(--sp-6);">
+        <a href="/privacidad" class="footer__link label-md">Privacidad</a>
+        <a href="/aviso-legal" class="footer__link label-md">Aviso Legal</a>
+        <a href="/cookies" class="footer__link label-md">Cookies</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer__bottom container">
+    <p class="label-md muted">© 2024 THE EDITORIAL MEDITERRANEAN. ALL RIGHTS RESERVED.</p>
+    <p class="label-md muted">Diseñado con intención en Madrid.</p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--inverse-surface);
+    color: var(--inverse-on-surface);
+    padding: var(--sp-20) 0 0;
+  }
+
+  .footer__grid {
+    display: grid;
+    gap: var(--sp-12);
+    padding-bottom: var(--sp-16);
+  }
+
+  @media (min-width: 640px) {
+    .footer__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .footer__grid {
+      grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
+    }
+  }
+
+  .footer__logo {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--inverse-on-surface);
+    margin-bottom: var(--sp-4);
+  }
+
+  .footer__tagline {
+    color: rgba(240,241,241,0.55);
+    margin-bottom: var(--sp-6);
+  }
+
+  .footer__social {
+    display: flex;
+    gap: var(--sp-5);
+  }
+
+  .footer__social-link {
+    color: rgba(240,241,241,0.55);
+    transition: color 0.2s;
+    border-bottom: 1px solid rgba(240,241,241,0.15);
+    padding-bottom: 2px;
+  }
+
+  .footer__social-link:hover { color: var(--inverse-on-surface); }
+
+  .footer__col-title {
+    color: rgba(240,241,241,0.4);
+    margin-bottom: var(--sp-5);
+  }
+
+  .footer__hours {
+    display: grid;
+    gap: var(--sp-4);
+  }
+
+  .footer__hours-row {
+    display: grid;
+    gap: var(--sp-1);
+  }
+
+  .footer__hours-row dt {
+    color: var(--inverse-on-surface);
+    font-size: 0.875rem;
+    font-weight: 400;
+  }
+
+  .footer__hours-row dd {
+    color: rgba(240,241,241,0.55);
+    font-size: 0.875rem;
+  }
+
+  .footer__links {
+    list-style: none;
+    display: grid;
+    gap: var(--sp-3);
+  }
+
+  .footer__link {
+    color: rgba(240,241,241,0.65);
+    transition: color 0.2s;
+  }
+
+  .footer__link:hover { color: var(--inverse-on-surface); }
+
+  .footer__legal-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-4);
+  }
+
+  .footer__legal-links .footer__link {
+    font-size: 0.65rem;
+    color: rgba(240,241,241,0.35);
+  }
+
+  .footer__bottom {
+    border-top: 1px solid rgba(240,241,241,0.08);
+    padding: var(--sp-6) var(--sp-8);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .footer__bottom p {
+    font-size: 0.65rem;
+  }
+</style>

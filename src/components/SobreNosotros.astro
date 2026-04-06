@@ -1,0 +1,149 @@
+---
+// SobreNosotros section
+---
+<section class="about section" id="nosotros" aria-labelledby="about-heading">
+  <div class="container about__grid">
+    <div class="about__text-col">
+      <p class="label-md muted reveal">Sobre nosotros</p>
+
+      <h2 class="headline-lg about__heading reveal delay-1" id="about-heading">
+        El equilibrio perfecto entre<br />
+        <span class="italic">tradición y modernidad.</span>
+      </h2>
+
+      <div class="about__body reveal delay-2">
+        <p class="body-lg">
+          En el corazón de Madrid, <strong>THE EDITORIAL</strong> nace como un manifiesto a la pureza del ingrediente. Nuestra historia se escribe con aceite de oliva virgen extra, hierbas aromáticas y el respeto absoluto por el producto de temporada.
+        </p>
+        <p class="body-lg">
+          Ubicados estratégicamente en el exclusivo <strong>Barrio de Salamanca</strong>, seleccionamos diariamente los mejores frutos del mar y la tierra para elevar la cocina mediterránea en Madrid a una categoría editorial. Con más de 40 años de legado gastronómico, cada servicio es un acto de amor y rigor.
+        </p>
+      </div>
+
+      <blockquote class="about__quote reveal delay-3">
+        <p class="headline-sm italic">"La simplicidad es la máxima sofisticación."</p>
+        <cite class="label-md muted">— Filosofía de The Editorial</cite>
+      </blockquote>
+
+      <div class="about__pillars reveal delay-4">
+        <div class="about__pillar">
+          <span class="label-md gold">01</span>
+          <p class="body-md">Ingredientes frescos de temporada, seleccionados diariamente de proveedores de proximidad.</p>
+        </div>
+        <div class="about__pillar">
+          <span class="label-md gold">02</span>
+          <p class="body-md">Cocina artesanal con técnicas mediterráneas transmitidas de generación en generación.</p>
+        </div>
+        <div class="about__pillar">
+          <span class="label-md gold">03</span>
+          <p class="body-md">Atención al detalle en cada plato, cada mesa y cada servicio para una experiencia completa.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="about__image-col reveal">
+      <div class="about__image-wrap">
+        <img
+          src="/interior.png"
+          alt="Interior del restaurante THE EDITORIAL en Madrid - ambiente elegante y acogedor"
+          loading="lazy"
+          width="600"
+          height="750"
+        />
+      </div>
+      <div class="about__image-caption">
+        <span class="label-md muted">Calle de Serrano, 42</span>
+        <p class="body-md">Barrio de Salamanca · Madrid</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about {
+    background: var(--surface-container-lowest);
+  }
+
+  .about__grid {
+    display: grid;
+    gap: var(--sp-16);
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .about__grid {
+      grid-template-columns: 1fr 420px;
+      gap: var(--sp-20);
+    }
+  }
+
+  .about__text-col {
+    display: grid;
+    gap: var(--sp-8);
+  }
+
+  .about__heading {
+    color: var(--on-surface);
+  }
+
+  .about__body {
+    display: grid;
+    gap: var(--sp-6);
+  }
+
+  .about__quote {
+    padding: var(--sp-8) 0;
+    border-top: 1px solid var(--outline-variant);
+    border-bottom: 1px solid var(--outline-variant);
+    display: grid;
+    gap: var(--sp-3);
+  }
+
+  .about__pillars {
+    display: grid;
+    gap: var(--sp-6);
+  }
+
+  @media (min-width: 640px) {
+    .about__pillars {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .about__pillar {
+    display: grid;
+    gap: var(--sp-3);
+    padding-top: var(--sp-4);
+    border-top: 1px solid var(--outline-variant);
+  }
+
+  .about__image-col {
+    display: grid;
+    gap: var(--sp-4);
+  }
+
+  .about__image-wrap {
+    aspect-ratio: 4/5;
+    overflow: hidden;
+  }
+
+  .about__image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(10%);
+    transition: transform 0.7s var(--ease-out);
+  }
+
+  .about__image-wrap:hover img {
+    transform: scale(1.03);
+  }
+
+  .about__image-caption {
+    display: grid;
+    gap: var(--sp-1);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--outline-variant);
+    text-align: right;
+  }
+</style>

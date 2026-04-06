@@ -1,0 +1,287 @@
+---
+// Carta / Menu section
+const entrantes = [
+  {
+    name: 'Carpaccio de Atún Rojo',
+    desc: 'Láminas de atún salvaje del Atlántico con emulsión de cítricos, alcaparras de Pantelleria y brotes frescos.',
+    precio: '€ 24',
+    estrella: true,
+  },
+  {
+    name: 'Flores de Alcachofa',
+    desc: 'Confitadas a baja temperatura con lascas de jamón ibérico bellota y sal de escamas Maldon.',
+    precio: '€ 18',
+    estrella: false,
+  },
+  {
+    name: 'Burrata de Búfala',
+    desc: 'Con aceite de oliva virgen extra Arbequina, tomate pera asado y albahaca fresca.',
+    precio: '€ 21',
+    estrella: false,
+  },
+  {
+    name: 'Gazpacho de Temporada',
+    desc: 'Tomate de rama, pepino, pimiento y aceite de oliva virgen extra. Servido con picatostes artesanales.',
+    precio: '€ 15',
+    estrella: false,
+  },
+];
+
+const principales = [
+  {
+    name: 'Arroz de Senyoret',
+    desc: 'Arroz meloso con marisco pelado, azafrán puro de la Mancha y socarrat perfecto. Plato emblemático de la casa.',
+    precio: '€ 38',
+    estrella: true,
+  },
+  {
+    name: 'Rodaballo Salvaje',
+    desc: 'A la brasa con bilbaína tradicional, verduritas de temporada y puré de patata trufada.',
+    precio: '€ 44',
+    estrella: false,
+  },
+  {
+    name: 'Lubina a la Sal',
+    desc: 'Lubina de crianza natural, cocinada en costra de sal y hierbas mediterráneas. Servida en sala.',
+    precio: '€ 41',
+    estrella: false,
+  },
+  {
+    name: 'Cordero a Baja Temperatura',
+    desc: 'Paletilla confitada 18 horas con miel de romero, yogur de hierbas y cuscús especiado.',
+    precio: '€ 39',
+    estrella: false,
+  },
+];
+
+const postres = [
+  {
+    name: 'Tarta de Queso La Viña',
+    desc: 'La clásica tarta de queso al horno con textura cremosa. Servida con mermelada de frutos rojos.',
+    precio: '€ 12',
+    estrella: true,
+  },
+  {
+    name: 'Torrija Caramelizada',
+    desc: 'Pan brioche empapado en leche de vainilla, caramelizado al momento con helado de vainilla de Madagascar.',
+    precio: '€ 11',
+    estrella: false,
+  },
+  {
+    name: 'Sorbete de Cítricos',
+    desc: 'Elaborado con zumo de limón de Murcia, naranja de Valencia y un toque de menta fresca.',
+    precio: '€ 9',
+    estrella: false,
+  },
+];
+
+const bebidas = [
+  { name: 'Selección de Vinos Blancos', desc: 'Albariños, Godello y blends mediterráneos de bodegas seleccionadas.', precio: 'desde € 8/copa' },
+  { name: 'Carta de Vinos Tintos', desc: 'Riojas, Riberas y vinos del Mediterráneo con guía de sommelier.', precio: 'desde € 9/copa' },
+  { name: 'Vinos Espumosos', desc: 'Cavas brut nature y champagnes de pequeños productores.', precio: 'desde € 10/copa' },
+  { name: 'Aguas Minerales', desc: 'Selección de aguas artesanas con y sin gas de manantiales españoles.', precio: '€ 4' },
+];
+---
+
+<section class="carta section--container" id="carta" aria-labelledby="carta-heading">
+  <!-- Header -->
+  <div class="container carta__header">
+    <p class="label-md muted reveal">La carta</p>
+    <h2 class="headline-lg reveal delay-1" id="carta-heading">
+      Una curaduría de sabores<br />
+      <span class="italic">diseñados para compartir.</span>
+    </h2>
+    <p class="body-lg muted reveal delay-2" style="max-width:560px;">
+      Cocina mediterránea con ingredientes frescos y de temporada. Aceite de oliva virgen extra en cada preparación, productos locales y técnica respetuosa con el producto.
+    </p>
+  </div>
+
+  <!-- Entrantes -->
+  <div class="container carta__section reveal">
+    <div class="carta__category-label">
+      <span class="label-lg">Entrantes</span>
+    </div>
+    <div class="carta__image-feature">
+      <img src="/entradas.png" alt="Entrantes mediterráneos - carpaccio de atún rojo y flores de alcachofa" loading="lazy" width="800" height="500" />
+    </div>
+    <ul class="carta__list" role="list">
+      {entrantes.map((item) => (
+        <li class="carta__item" role="listitem">
+          <div class="carta__item-main">
+            <h3 class="headline-sm carta__item-name">
+              {item.name}
+              {item.estrella && <span class="label-md gold carta__star" title="Plato estrella de la casa">★ Plato estrella</span>}
+            </h3>
+            <p class="body-md carta__item-desc muted">{item.desc}</p>
+          </div>
+          <span class="label-md carta__item-price">{item.precio}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <!-- Principales -->
+  <div class="container carta__section reveal">
+    <div class="carta__category-label">
+      <span class="label-lg">Platos Principales</span>
+    </div>
+    <div class="carta__image-feature carta__image-feature--right">
+      <img src="/principales.png" alt="Arroz de senyoret con marisco - plato principal mediterráneo en Madrid" loading="lazy" width="800" height="500" />
+    </div>
+    <ul class="carta__list" role="list">
+      {principales.map((item) => (
+        <li class="carta__item" role="listitem">
+          <div class="carta__item-main">
+            <h3 class="headline-sm carta__item-name">
+              {item.name}
+              {item.estrella && <span class="label-md gold carta__star" title="Plato estrella de la casa">★ Plato estrella</span>}
+            </h3>
+            <p class="body-md carta__item-desc muted">{item.desc}</p>
+          </div>
+          <span class="label-md carta__item-price">{item.precio}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <!-- Postres & Bebidas -->
+  <div class="container carta__bottom-grid reveal">
+    <div class="carta__section">
+      <div class="carta__category-label"><span class="label-lg">Postres</span></div>
+      <ul class="carta__list" role="list">
+        {postres.map((item) => (
+          <li class="carta__item" role="listitem">
+            <div class="carta__item-main">
+              <h3 class="headline-sm carta__item-name">
+                {item.name}
+                {item.estrella && <span class="label-md gold carta__star">★</span>}
+              </h3>
+              <p class="body-md carta__item-desc muted">{item.desc}</p>
+            </div>
+            <span class="label-md carta__item-price">{item.precio}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div class="carta__section">
+      <div class="carta__category-label"><span class="label-lg">Bebidas</span></div>
+      <ul class="carta__list" role="list">
+        {bebidas.map((item) => (
+          <li class="carta__item" role="listitem">
+            <div class="carta__item-main">
+              <h3 class="headline-sm carta__item-name">{item.name}</h3>
+              <p class="body-md carta__item-desc muted">{item.desc}</p>
+            </div>
+            <span class="label-md carta__item-price">{item.precio}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .carta {
+    padding: var(--sp-24) 0;
+    background: var(--surface-container-low);
+  }
+
+  .carta__header {
+    display: grid;
+    gap: var(--sp-5);
+    margin-bottom: var(--sp-20);
+  }
+
+  .carta__section {
+    margin-bottom: var(--sp-16);
+  }
+
+  .carta__category-label {
+    padding-bottom: var(--sp-6);
+    border-bottom: 1px solid var(--outline-variant);
+    margin-bottom: var(--sp-8);
+  }
+
+  .carta__image-feature {
+    margin-bottom: var(--sp-8);
+    overflow: hidden;
+    max-height: 420px;
+  }
+
+  .carta__image-feature img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(15%);
+    transition: transform 0.7s var(--ease-out);
+  }
+
+  .carta__image-feature:hover img { transform: scale(1.03); }
+
+  @media (min-width: 1024px) {
+    .carta__image-feature {
+      max-width: 60%;
+    }
+
+    .carta__image-feature--right {
+      margin-left: auto;
+    }
+  }
+
+  .carta__list {
+    list-style: none;
+    display: grid;
+    gap: 0;
+  }
+
+  .carta__item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--sp-6);
+    padding: var(--sp-6) 0;
+    border-bottom: 1px solid rgba(199, 199, 199, 0.25);
+    transition: background 0.2s;
+  }
+
+  .carta__item:hover {
+    background: rgba(0,0,0,0.015);
+    padding-left: var(--sp-3);
+  }
+
+  .carta__item-main {
+    display: grid;
+    gap: var(--sp-2);
+    flex: 1;
+  }
+
+  .carta__item-name {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+  }
+
+  .carta__star {
+    color: var(--gold);
+    font-size: 0.65rem;
+  }
+
+  .carta__item-price {
+    white-space: nowrap;
+    color: var(--on-surface-variant);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .carta__bottom-grid {
+    display: grid;
+    gap: var(--sp-12);
+  }
+
+  @media (min-width: 768px) {
+    .carta__bottom-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

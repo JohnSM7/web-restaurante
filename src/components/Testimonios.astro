@@ -1,0 +1,156 @@
+---
+// Testimonios section
+const reviews = [
+  {
+    texto: '"Un restaurante elegante en Madrid que realmente entiende la esencia del Mediterráneo. El arroz es, sencillamente, el mejor de la ciudad. Una experiencia gastronómica que se queda contigo."',
+    nombre: 'Elena Martínez',
+    cargo: 'Crítica Gastronómica',
+    rating: 5,
+  },
+  {
+    texto: '"El ambiente exclusivo y la atención al detalle hacen de THE EDITORIAL mi lugar preferido para cenas de negocios y ocasiones especiales. Servicio impecable y cocina de autor de primer nivel."',
+    nombre: 'Javier Soler',
+    cargo: 'Empresario',
+    rating: 5,
+  },
+  {
+    texto: '"Cocina honesta, ingredientes de una calidad insuperable y una carta de vinos que es puro arte. Raro encontrar en Madrid esta combinación de técnica y respeto al producto. Una joya."',
+    nombre: 'Sofía Ricci',
+    cargo: 'Chef Invitada',
+    rating: 5,
+  },
+];
+---
+
+<section class="testimonios section--container" id="testimonios" aria-labelledby="testimonios-heading">
+  <div class="container">
+    <div class="testimonios__header">
+      <p class="label-md muted reveal">Opiniones</p>
+      <h2 class="headline-lg reveal delay-1" id="testimonios-heading">
+        Lo que dicen<br />
+        <span class="italic">nuestros comensales.</span>
+      </h2>
+      <div class="testimonios__score reveal delay-2">
+        <div class="testimonios__stars" aria-label="Valoración 5 estrellas">
+          {Array.from({ length: 5 }).map(() => <span class="star" aria-hidden="true">★</span>)}
+        </div>
+        <p class="body-md muted">4.9 · Más de 840 reseñas en Google</p>
+      </div>
+    </div>
+
+    <div class="testimonios__grid">
+      {reviews.map((r, i) => (
+        <figure class={`testimonios__card reveal delay-${i + 1}`} role="group" aria-label={`Reseña de ${r.nombre}`}>
+          <blockquote class="testimonios__texto body-lg italic">
+            {r.texto}
+          </blockquote>
+          <figcaption class="testimonios__autor">
+            <div class="testimonios__avatar" aria-hidden="true">
+              {r.nombre.charAt(0)}
+            </div>
+            <div>
+              <p class="label-md">{r.nombre}</p>
+              <p class="body-md muted">{r.cargo}</p>
+            </div>
+            <div class="testimonios__stars-sm" aria-label={`${r.rating} estrellas`}>
+              {Array.from({ length: r.rating }).map(() => <span class="star" aria-hidden="true">★</span>)}
+            </div>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .testimonios {
+    padding: var(--sp-24) 0;
+    background: var(--surface-container-low);
+  }
+
+  .testimonios__header {
+    display: grid;
+    gap: var(--sp-5);
+    margin-bottom: var(--sp-16);
+  }
+
+  .testimonios__score {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+  }
+
+  .testimonios__stars {
+    display: flex;
+    gap: 2px;
+  }
+
+  .star {
+    color: var(--gold);
+    font-size: 1.1rem;
+  }
+
+  .testimonios__grid {
+    display: grid;
+    gap: var(--sp-1);
+  }
+
+  @media (min-width: 768px) {
+    .testimonios__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .testimonios__card {
+    background: var(--surface-container-lowest);
+    padding: var(--sp-8);
+    display: grid;
+    gap: var(--sp-8);
+    align-content: space-between;
+    transition: box-shadow 0.25s;
+  }
+
+  .testimonios__card:hover {
+    box-shadow: 0 20px 40px rgba(0,0,0,0.04);
+  }
+
+  .testimonios__texto {
+    color: var(--on-surface);
+    line-height: 1.7;
+    font-size: 0.9375rem;
+  }
+
+  .testimonios__autor {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+    padding-top: var(--sp-5);
+    border-top: 1px solid var(--outline-variant);
+  }
+
+  .testimonios__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface-container-high);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    font-weight: 400;
+    flex-shrink: 0;
+  }
+
+  .testimonios__stars-sm {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .testimonios__stars-sm .star {
+    font-size: 0.7rem;
+  }
+</style>
