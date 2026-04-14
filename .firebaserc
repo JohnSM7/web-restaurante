@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "tane-booking-app"
+  },
+  "targets": {
+    "tanesolutions-d86dc": {
+      "hosting": {
+        "restaurante": [
+          "tane-restaurante-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

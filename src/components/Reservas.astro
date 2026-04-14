@@ -1,8 +1,10 @@
 ---
 // Reservas section
+import BookingForm from './BookingForm.vue';
 ---
 <section class="reservas section" id="reservas" aria-labelledby="reservas-heading">
-  <div class="container reservas__grid">
+  <div class="reservas__container">
+    <div class="reservas__grid">
     <div class="reservas__info">
       <p class="label-md muted reveal">Reservas</p>
       <h2 class="headline-lg reveal delay-1" id="reservas-heading">
@@ -32,73 +34,8 @@
       </div>
     </div>
 
-    <div class="reservas__form-wrap reveal delay-2">
-      <form class="reservas__form" id="form-reservas" name="reservas" method="POST" novalidate aria-label="Formulario de reserva de mesa">
-        <h3 class="headline-sm" style="margin-bottom:var(--sp-6);">Solicitar reserva</h3>
-
-        <div class="form-field">
-          <label class="label-md" for="nombre">Nombre completo</label>
-          <input type="text" id="nombre" name="nombre" required placeholder="María García López" autocomplete="name" />
-        </div>
-
-        <div class="form-field">
-          <label class="label-md" for="email">Correo electrónico</label>
-          <input type="email" id="email" name="email" required placeholder="maria@example.com" autocomplete="email" />
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label class="label-md" for="telefono">Teléfono</label>
-            <input type="tel" id="telefono" name="telefono" placeholder="+34 600 000 000" autocomplete="tel" />
-          </div>
-          <div class="form-field">
-            <label class="label-md" for="personas">Personas</label>
-            <select id="personas" name="personas" required>
-              <option value="" disabled selected>Nº comensales</option>
-              {[1,2,3,4,5,6,7,8].map(n => <option value={n}>{n} {n === 1 ? 'persona' : 'personas'}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-field">
-            <label class="label-md" for="fecha">Fecha</label>
-            <input type="date" id="fecha" name="fecha" required />
-          </div>
-          <div class="form-field">
-            <label class="label-md" for="hora">Hora</label>
-            <select id="hora" name="hora" required>
-              <option value="" disabled selected>Servicio</option>
-              <optgroup label="Almuerzo">
-                <option value="13:30">13:30 h</option>
-                <option value="14:00">14:00 h</option>
-                <option value="14:30">14:30 h</option>
-                <option value="15:00">15:00 h</option>
-                <option value="15:30">15:30 h</option>
-              </optgroup>
-              <optgroup label="Cena">
-                <option value="20:30">20:30 h</option>
-                <option value="21:00">21:00 h</option>
-                <option value="21:30">21:30 h</option>
-                <option value="22:00">22:00 h</option>
-              </optgroup>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label class="label-md" for="notas">Notas o alergias (opcional)</label>
-          <textarea id="notas" name="notas" rows="3" placeholder="Alergias, ocasión especial, preferencias de mesa..."></textarea>
-        </div>
-
-        <button type="submit" class="btn-primary" style="width:100%;justify-content:center;" id="submit-reserva">
-          Confirmar reserva
-        </button>
-
-        <p class="label-md muted" style="text-align:center;margin-top:var(--sp-3);">
-          Recibirás confirmación por email en menos de 2 horas.
-        </p>
-      </form>
+    <div class="reservas__form-wrap">
+      <BookingForm client:load />
     </div>
   </div>
 </section>
@@ -108,56 +45,55 @@
     background: var(--surface-container-lowest);
   }
 
+  .reservas__container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0; /* Full width mobile */
+  }
+
+  @media (min-width: 768px) {
+    .reservas__container {
+      padding: 0 var(--sp-10);
+    }
+  }
+
   .reservas__grid {
-    display: grid;
-    gap: var(--sp-16);
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-12);
   }
 
   @media (min-width: 1024px) {
     .reservas__grid {
-      grid-template-columns: 1fr 1fr;
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: var(--sp-24);
+      align-items: center;
     }
   }
 
   .reservas__info {
-    display: grid;
-    gap: var(--sp-8);
+    padding: var(--sp-16) var(--sp-8) 0;
   }
 
-  .reservas__contact {
-    display: grid;
-    gap: var(--sp-5);
-    padding-top: var(--sp-6);
-    border-top: 1px solid var(--outline-variant);
+  @media (min-width: 1024px) {
+    .reservas__info {
+      padding: 0;
+    }
   }
 
-  .reservas__contact-item {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--sp-4);
-    transition: opacity 0.2s;
-  }
-
-  .reservas__contact-item:hover { opacity: 0.7; }
-
-  .reservas__contact-item svg {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    color: var(--gold);
-    margin-top: 2px;
-  }
-
-  .reservas__contact-item div {
-    display: grid;
-    gap: var(--sp-1);
-  }
-
-  /* Form */
+  /* Form Wrap */
   .reservas__form-wrap {
-    background: var(--surface-container-low);
-    padding: var(--sp-10);
+    background: #ffffff; /* pure white for maximum readability */
+    padding: var(--sp-10) var(--sp-6);
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.05); /* Subtle shadow for depth */
+  }
+
+  @media (min-width: 1024px) {
+    .reservas__form-wrap {
+      padding: var(--sp-20);
+    }
   }
 
   .reservas__form {
@@ -212,24 +148,34 @@
   .form-field select option {
     background: var(--surface-container-lowest);
   }
+  .reservas__contact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-8);
+    margin-top: var(--sp-8);
+    padding-top: var(--sp-8);
+    border-top: 1px solid var(--outline-variant);
+  }
+
+  .reservas__contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-4);
+  }
+
+  .reservas__contact-item svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: var(--gold);
+    margin-top: 2px;
+  }
+
+  .reservas__contact-item div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
 </style>
 
-<script>
-  const form = document.getElementById('form-reservas');
-  form?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('submit-reserva');
-    if (btn) {
-      btn.textContent = '✓ Reserva enviada';
-      btn.setAttribute('disabled', 'true');
-      btn.style.background = '#3b3b3b';
-    }
-  });
 
-  // Set min date to today
-  const dateInput = document.getElementById('fecha') as HTMLInputElement;
-  if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.min = today;
-  }
-</script>

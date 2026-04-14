@@ -1,0 +1,96 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Cancelar Reserva | Tane">
+  <main class="cancel-container">
+    <div class="cancel-card animate-fade-up">
+      <div id="status-pending">
+        <h1 class="font-serif text-4xl mb-6">Cancelar Reserva</h1>
+        <p class="body-lg mb-10 text-outline">¿Estás seguro de que deseas cancelar tu reserva en Tane Restaurante?</p>
+        
+        <button id="cancel-confirm-btn" class="btn-primary w-full py-6">Confirmar Cancelación</button>
+        <p id="loading-text" class="hidden mt-4 text-xs tracking-widest uppercase">Procesando...</p>
+      </div>
+
+      <div id="status-success" class="hidden">
+        <h1 class="font-serif text-4xl mb-6">Reserva Cancelada</h1>
+        <p class="body-lg mb-10 text-outline">Tu reserva ha sido cancelada correctamente. Esperamos verte en otra ocasión.</p>
+        <a href="/" class="btn-ghost inline-block">Volver al inicio</a>
+      </div>
+
+      <div id="status-error" class="hidden text-red-800">
+        <h1 class="font-serif text-4xl mb-6">Hubo un error</h1>
+        <p id="error-msg" class="body-lg mb-10">No pudimos encontrar tu reserva o ya ha sido cancelada.</p>
+        <a href="/" class="btn-ghost inline-block text-black">Volver al inicio</a>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import { doc, getDoc, updateDoc } from 'firebase/firestore';
+  import { db } from '../lib/firebase';
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const reservaId = urlParams.get('id');
+
+  const btn = document.getElementById('cancel-confirm-btn');
+  const pendingDiv = document.getElementById('status-pending');
+  const successDiv = document.getElementById('status-success');
+  const errorDiv = document.getElementById('status-error');
+  const loadingText = document.getElementById('loading-text');
+
+  if (!reservaId) {
+    pendingDiv.classList.add('hidden');
+    errorDiv.classList.remove('hidden');
+  }
+
+  btn?.addEventListener('click', async () => {
+    if (!reservaId) return;
+    
+    btn.disabled = true;
+    loadingText.classList.remove('hidden');
+
+    try {
+      const docRef = doc(db, 'reservas', reservaId);
+      const snap = await getDoc(docRef);
+
+      if (!snap.exists()) {
+        throw new Error('La reserva no existe.');
+      }
+
+      await updateDoc(docRef, {
+        estado: 'cancelada',
+        cancelado_por: 'cliente'
+      });
+
+      pendingDiv.classList.add('hidden');
+      successDiv.classList.remove('hidden');
+    } catch (err) {
+      console.error(err);
+      pendingDiv.classList.add('hidden');
+      errorDiv.classList.remove('hidden');
+    }
+  });
+</script>
+
+<style>
+  .cancel-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    padding: 20px;
+  }
+  .cancel-card {
+    background: white;
+    padding: 60px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.05);
+  }
+</style>

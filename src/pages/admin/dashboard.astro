@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminTable from '../../components/AdminTable.vue';
+---
+
+<Layout title="Dashboard CRM | Tane Solutions">
+	<main class="relative min-h-screen">
+		<!-- CRM Vue Island - Nueva Interfaz Fullscreen -->
+		<AdminTable client:load />
+	</main>
+</Layout>

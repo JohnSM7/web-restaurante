@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&family=Work+Sans:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
 /* ============================================
    THE EDITORIAL MEDITERRANEAN – Global Styles
    Design System: Stitch "Demo Hosteleria"
@@ -5,13 +8,11 @@
    Fonts: Noto Serif + Work Sans
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&family=Work+Sans:wght@300;400;500;600&display=swap');
-
 /* ─── Design Tokens ─── */
 :root {
   --primary: #000000;
-  --primary-container: #3b3b3b;
-  --primary-fixed: #5e5e5e;
+  --primary-container: #1a1a1a;
+  --primary-fixed: #333333;
   --surface: #f9f9f9;
   --surface-bright: #f9f9f9;
   --surface-container-lowest: #ffffff;
@@ -20,14 +21,14 @@
   --surface-container-high: #e8e8e8;
   --surface-container-highest: #e2e2e2;
   --surface-dim: #dadada;
-  --on-surface: #1a1c1c;
-  --on-surface-variant: #474747;
-  --on-primary: #e2e2e2;
-  --secondary: #5f5e5e;
-  --outline: #777777;
-  --outline-variant: #c6c6c6;
-  --inverse-surface: #2f3131;
-  --inverse-on-surface: #f0f1f1;
+  --on-surface: #000000; /* Pure black for better contrast */
+  --on-surface-variant: #2d2d2d; /* Much darker gray */
+  --on-primary: #ffffff;
+  --secondary: #3d3d3d;
+  --outline: #555555;
+  --outline-variant: #b0b0b0;
+  --inverse-surface: #1a1c1c;
+  --inverse-on-surface: #ffffff;
   --error: #ba1a1a;
 
   /* Gold accents (subtle) */
@@ -133,14 +134,14 @@ a {
 .body-lg {
   font-family: var(--font-sans);
   font-size: 1.0625rem;
-  font-weight: 300;
+  font-weight: 400; /* Increased from 300 */
   line-height: 1.75;
 }
 
 .body-md {
   font-family: var(--font-sans);
   font-size: 0.9375rem;
-  font-weight: 300;
+  font-weight: 400; /* Increased from 300 */
   line-height: 1.7;
 }
 
