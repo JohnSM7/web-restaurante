@@ -71,12 +71,6 @@
     <!-- Main Content -->
     <main class="crm-main">
       <!-- Top Mobile Header -->
-      <header class="mobile-header md:hidden">
-        <button @click="sidebarOpen = true" class="menu-trigger">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-        </button>
-        <span class="logo-text-sm">TANE CRM</span>
-      </header>
 
       <!-- View Header -->
       <section class="view-header">
@@ -85,10 +79,6 @@
           <p class="view-subtitle">{{ activeNavItem?.description }}</p>
         </div>
         <div class="header-actions">
-          <button @click="exportToCSV" class="btn-secondary">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            Exportar CSV
-          </button>
         </div>
       </section>
 
@@ -165,6 +155,18 @@
                   <span class="detail-label">Comensales</span>
                   <span class="detail-value">{{ reserva.comensales }} personas</span>
                 </div>
+                <!-- Mesa Assignment -->
+                <div v-if="reserva.estado === 'confirmada'" class="detail-item">
+                  <span class="detail-label">Mesa Asignada</span>
+                  <select :value="reserva.mesa_id || ''" 
+                          @change="assignTable(reserva.id, $event.target.value)"
+                          class="table-selector">
+                    <option value="">Sin Asignar</option>
+                    <option v-for="m in mesas" :key="m.id" :value="m.id">
+                      {{ m.nombre }} ({{ m.zona }}) - {{ m.pax_max }}p
+                    </option>
+                  </select>
+                </div>
               </div>
 
               <div class="status-badge" :class="reserva.estado">
@@ -203,6 +205,100 @@
                 <div class="flex-grow"></div>
                 <button @click="deleteReserva(reserva.id)" class="btn-action delete">Eliminar</button>
               </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: MAPA DE MESAS -->
+      <div v-else-if="currentView === 'mapa'" class="view-content animate-in fade-in">
+        <div class="map-controls flex justify-between items-center mb-8">
+           <div class="flex gap-4">
+             <button @click="initMockTables" v-if="mesas.length === 0" class="btn-primary">Inicializar Sala (Mock)</button>
+             <button @click="addTable" v-else class="btn-secondary">+ Nueva Mesa</button>
+           </div>
+           
+           <button @click="isDesignMode = !isDesignMode" 
+                   :class="['btn-design', isDesignMode ? 'active' : '']">
+              {{ isDesignMode ? '💾 Guardar Posiciones' : '📐 Editar Diseño' }}
+           </button>
+        </div>
+
+        <div class="map-container" :class="{ 'design-active': isDesignMode }">
+          <!-- Layer 1: The Grid cells for dropping -->
+          <div class="interactive-grid-base">
+             <div v-for="cellIdx in 144" :key="'cell-'+cellIdx" 
+                  class="grid-cell"
+                  @dragover.prevent
+                  @drop="onDropMesa($event, cellIdx)">
+             </div>
+          </div>
+
+          <!-- Layer 2: The Tables (positioned over the grid) -->
+          <div class="tables-layer">
+             <div v-for="mesa in mesas" :key="mesa.id" 
+                  class="mesa-icon" 
+                  :class="[mesa.estado, mesa.zona, { 'is-dragging': draggingId === mesa.id }]"
+                  :style="{ 
+                    left: `${((mesa.x || 1) - 1) * 100}px`, 
+                    top: `${((mesa.y || 1) - 1) * 100}px` 
+                  }"
+                  :draggable="isDesignMode"
+                  @dragstart="onDragStartMesa($event, mesa.id)"
+                  @dragend="draggingId = null"
+                  @click="!isDesignMode ? editMesa(mesa) : null">
+                
+                <div class="mesa-header">
+                  <span class="mesa-id">{{ mesa.nombre }}</span>
+                  <span class="mesa-pax">{{ mesa.pax_max }}p</span>
+                </div>
+                <div v-if="!isDesignMode" class="mesa-body">
+                   <div class="status-indicator-min">
+                      <span class="status-dot"></span>
+                      <span class="status-text">{{ translateTableStatus(mesa.estado) }}</span>
+                   </div>
+                </div>
+                <div class="mesa-footer">
+                  <span class="zona-tag">{{ mesa.zona }}</span>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <!-- Mesa Details Side Panel (Simplified) -->
+        <div v-if="editingMesa" class="mesa-editor-overlay" @click.self="editingMesa = null">
+          <div class="mesa-editor-card">
+            <h2>Editar Mesa</h2>
+            <div class="edit-fields">
+               <div class="field">
+                 <label>Nombre de la Mesa</label>
+                 <input type="text" v-model="editingMesa.nombre" placeholder="Ej: Mesa 12">
+               </div>
+               <div class="field">
+                 <label>Estado</label>
+                 <select v-model="editingMesa.estado">
+                    <option value="libre">Libre</option>
+                    <option value="reservada">Reservada</option>
+                    <option value="ocupada">Ocupada</option>
+                    <option value="bloqueada">Bloqueada</option>
+                 </select>
+               </div>
+               <div class="field">
+                 <label>Zona</label>
+                 <select v-model="editingMesa.zona">
+                    <option value="interior">Interior</option>
+                    <option value="terraza">Terraza</option>
+                    <option value="vip">VIP</option>
+                 </select>
+               </div>
+               <div class="field">
+                 <label>Capacidad Máxima</label>
+                 <input type="number" v-model="editingMesa.pax_max">
+               </div>
+            </div>
+            <div class="editor-actions">
+               <button @click="updateMesaStatus" class="btn-save">Guardar Cambios</button>
+               <button @click="deleteTable(editingMesa.id)" class="btn-delete-mesa">Eliminar Mesa</button>
             </div>
           </div>
         </div>
@@ -248,7 +344,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { db, auth } from '../lib/firebase.ts';
 
@@ -263,6 +359,7 @@ const password = ref('');
 const sidebarOpen = ref(false);
 const currentView = ref('reservas');
 const reservas = ref([]);
+const mesas = ref([]);
 const loading = ref(true);
 const status = ref('connecting');
 const statusMsg = ref('Sincronizando...');
@@ -271,10 +368,13 @@ const dateFilter = ref('');
 const searchQuery = ref('');
 const updatingId = ref(null);
 const noteSaving = ref(null);
+const isDesignMode = ref(false);
+const draggingId = ref(null);
 let unsubscribe = null;
 
 const navItems = [
   { id: 'reservas', label: 'Reservas', description: 'Gestiona el flujo diario del restaurante', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' },
+  { id: 'mapa', label: 'Mapa de Mesas', description: 'Distribución y estado de sala en tiempo real', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>' },
   { id: 'guests', label: 'Lista de Clientes', description: 'Historial completo de comensales', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' }
 ];
 
@@ -335,25 +435,38 @@ const getFilterCount = (fid) => {
   return 0;
 };
 
+// Sincronizar Mesas
+const syncMesas = () => {
+  const q = query(collection(db, "mesas"), orderBy("nombre", "asc"));
+  onSnapshot(q, (snapshot) => {
+    mesas.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  });
+};
+
+const syncReservas = () => {
+  const q = query(collection(db, "reservas"), orderBy("creado_en", "desc"));
+  unsubscribe = onSnapshot(q, (qs) => {
+    const list = [];
+    qs.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+    reservas.value = list;
+    loading.value = false;
+    status.value = 'connected';
+    statusMsg.value = 'Sincronizado';
+  });
+};
+
 onMounted(() => {
   onAuthStateChanged(auth, (u) => {
-    user.value = u;
     checkingAuth.value = false;
-    
     if (u) {
-      // Start listening to data only if authenticated
-      const q = query(collection(db, "reservas"), orderBy("creado_en", "desc"));
-      unsubscribe = onSnapshot(q, (qs) => {
-        const list = [];
-        qs.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-        reservas.value = list;
-        loading.value = false;
-        status.value = 'connected';
-        statusMsg.value = 'Sincronizado';
-      });
+      user.value = u;
+      syncReservas();
+      syncMesas();
     } else {
+      user.value = null;
       if (unsubscribe) unsubscribe();
       reservas.value = [];
+      mesas.value = [];
     }
   });
 });
@@ -376,6 +489,98 @@ const handleLogout = async () => {
     if (confirm('¿Cerrar sesión?')) {
         await signOut(auth);
     }
+};
+
+// Table Management logic
+const editingMesa = ref(null);
+const editMesa = (m) => { editingMesa.value = { ...m }; };
+
+const updateMesaStatus = async () => {
+  if (!editingMesa.value) return;
+  const { id, estado, ...data } = editingMesa.value;
+  
+  // Si se intenta marcar como ocupada, verificar si hay reservas pronto
+  if (estado === 'ocupada') {
+    const now = new Date();
+    const currMin = now.getHours() * 60 + now.getMinutes();
+    
+    const hasSoonReservation = reservas.value.some(r => {
+      if (r.mesa_id !== id || r.estado !== 'confirmada') return false;
+      
+      // Solo para hoy
+      const rDate = r.fecha?.toDate ? r.fecha.toDate() : new Date(r.fecha);
+      if (rDate.toDateString() !== now.toDateString()) return false;
+      
+      const rMin = timeToMinutes(r.hora);
+      // Bloquear si la reserva es en los próximos 60 minutos
+      return (rMin >= currMin && rMin <= currMin + 60);
+    });
+    
+    if (hasSoonReservation) {
+      alert('¡ATENCIÓN! No puedes marcar esta mesa como ocupada porque tiene una reserva confirmada en menos de 60 minutos. Por favor, utiliza otra mesa o libera la reserva primero.');
+      return;
+    }
+  }
+
+  await updateDoc(doc(db, "mesas", id), { estado, ...data });
+  editingMesa.value = null;
+};
+
+const translateTableStatus = (s) => {
+  const map = { libre: 'Libre', reservada: 'Reservada', ocupada: 'Ocupada', bloqueada: 'Bloqueada' };
+  return map[s] || s;
+};
+
+const addTable = async () => {
+  const name = prompt('Nombre de la mesa (ej: Mesa 25):');
+  if (!name) return;
+  await addDoc(collection(db, "mesas"), {
+    nombre: name,
+    pax_max: 4,
+    zona: 'interior',
+    estado: 'libre',
+    x: 1,
+    y: 1
+  });
+};
+
+const onDragStartMesa = (event, id) => {
+  draggingId.value = id;
+  event.dataTransfer.setData('mesaId', id);
+  event.dataTransfer.effectAllowed = 'move';
+};
+
+const onDropMesa = async (event, cellIdx) => {
+  const id = draggingId.value || event.dataTransfer.getData('mesaId');
+  if (!id) return;
+
+  // Calculate X,Y from 1D cell index (1 to 144 for a 12x12 grid)
+  const x = ((cellIdx - 1) % 12) + 1;
+  const y = Math.floor((cellIdx - 1) / 12) + 1;
+
+  await updateDoc(doc(db, "mesas", id), { x, y });
+  draggingId.value = null;
+};
+
+const initMockTables = async () => {
+  const mock = [
+    { nombre: 'Mesa 1', pax_max: 2, zona: 'interior', estado: 'libre', x: 2, y: 2 },
+    { nombre: 'Mesa 2', pax_max: 4, zona: 'interior', estado: 'libre', x: 2, y: 5 },
+    { nombre: 'Mesa 3', pax_max: 6, zona: 'vip', estado: 'libre', x: 8, y: 2 },
+    { nombre: 'T1', pax_max: 2, zona: 'terraza', estado: 'libre', x: 5, y: 8 },
+    { nombre: 'T2', pax_max: 4, zona: 'terraza', estado: 'libre', x: 8, y: 8 }
+  ];
+  for (const item of mock) {
+    await addDoc(collection(db, "mesas"), item);
+  }
+};
+
+const assignTable = async (reservaId, mesaId) => {
+  await updateDoc(doc(db, "reservas", reservaId), { mesa_id: mesaId });
+  // Opcionalmente, cambiar estado de la mesa a 'reservada'
+  if (mesaId) {
+    await updateDoc(doc(db, "mesas", mesaId), { estado: 'reservada' });
+  }
 };
 
 const saveNote = async (id, notes) => {
@@ -405,7 +610,45 @@ const exportToCSV = () => {
 const confirmAction = async (id, n) => {
   if (!confirm(`¿Confirmas cambiar el estado a ${n.toUpperCase()}?`)) return;
   updatingId.value = id;
-  try { await updateDoc(doc(db, "reservas", id), { estado: n }); }
+  try { 
+    const updateObj = { estado: n };
+    
+     if (n === 'confirmada') {
+      const res = reservas.value.find(r => r.id === id);
+      if (res && !res.mesa_id) {
+         const resTime = timeToMinutes(res.hora);
+         const resDuration = res.comensales > 4 ? 120 : 90;
+
+         const possibleTables = mesas.value.filter(m => m.pax_max >= res.comensales);
+         
+         const reservationsInDate = reservas.value.filter(existingRes => 
+           existingRes.estado === 'confirmada' && 
+           existingRes.mesa_id &&
+           (existingRes.fecha?.seconds === res.fecha?.seconds)
+         );
+
+         const availableTable = possibleTables.find(mesa => {
+            const hasOverlap = reservationsInDate.some(ex => {
+               if (ex.mesa_id !== mesa.id) return false;
+               const exTime = timeToMinutes(ex.hora);
+               const exDuration = ex.comensales > 4 ? 120 : 90;
+               return (resTime >= exTime && resTime < exTime + exDuration) ||
+                      (exTime >= resTime && exTime < resTime + resDuration);
+            });
+            return !hasOverlap;
+         });
+
+         if (availableTable) {
+            updateObj.mesa_id = availableTable.id;
+            await updateDoc(doc(db, "mesas", availableTable.id), { estado: 'reservada' });
+         } else {
+            alert('Aviso: No hay mesas libres para esa ventana de tiempo (90/120 min). Se confirmará sin mesa asignada.');
+         }
+      }
+    }
+    
+    await updateDoc(doc(db, "reservas", id), updateObj); 
+  }
   finally { updatingId.value = null; }
 };
 
@@ -430,6 +673,12 @@ const formatDateLong = (d) => {
 
 const translateEstado = (e) => e.toUpperCase();
 const resetFilters = () => { filter.value = 'pendiente'; dateFilter.value = ''; searchQuery.value = ''; };
+
+const timeToMinutes = (t) => {
+  if (!t) return 0;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+};
 </script>
 
 <style scoped>
@@ -648,6 +897,185 @@ const resetFilters = () => { filter.value = 'pendiente'; dateFilter.value = ''; 
 .crm-table th { padding: 1rem 1.5rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; border-bottom: 1px solid #f1f5f9; }
 .crm-table td { padding: 1.5rem; border-bottom: 1px solid #f8fafc; }
 .count-pill { background: #f1f5f9; padding: 0.25rem 0.75rem; border-radius: 100px; font-weight: 700; font-size: 0.75rem; }
+
+/* Table Map Specific CSS */
+.map-container {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 0; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  overflow: auto;
+  min-height: 600px;
+  position: relative;
+  width: 100%;
+}
+
+.interactive-grid-base {
+  display: grid;
+  grid-template-columns: repeat(12, 100px);
+  grid-template-rows: repeat(12, 100px);
+  width: 1200px;
+  height: 1200px;
+  background: #f8fafc;
+}
+
+.grid-cell {
+  border: 0.5px solid #f1f5f9;
+}
+
+.design-active .grid-cell {
+  border: 1px solid #e2e8f0;
+  background: white;
+}
+
+.tables-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1200px;
+  height: 1200px;
+  pointer-events: none;
+}
+
+.mesa-icon {
+  position: absolute;
+  pointer-events: auto;
+  background: white;
+  border-radius: 1.25rem;
+  padding: 0.75rem;
+  border: 3px solid #e2e8f0;
+  width: 95px;
+  height: 95px;
+  margin: 2.5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  transition: transform 0.2s, box-shadow 0.2s, top 0.3s, left 0.3s;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.design-active .mesa-icon {
+  cursor: grab;
+  border-style: dashed;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.mesa-icon.is-dragging {
+  opacity: 0; 
+}
+
+.mesa-icon.libre { border-color: #10b981; }
+.mesa-icon.reservada { border-color: #f59e0b; }
+.mesa-icon.ocupada { border-color: #ef4444; }
+
+.mesa-id { 
+  font-weight: 900; 
+  font-size: 0.75rem; 
+  color: #0f172a; 
+  line-height: 1.1;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.mesa-pax { 
+  font-size: 0.65rem; 
+  font-weight: 800; 
+  color: #64748b; 
+  background: #f1f5f9; 
+  padding: 0.15rem 0.4rem; 
+  border-radius: 6px; 
+}
+
+.status-indicator-min { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.4rem; 
+  margin: 0.25rem 0;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; display: block; }
+.status-text { 
+  font-size: 0.65rem; 
+  font-weight: 700; 
+  color: #475569; 
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.mesa-footer {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.4rem;
+  margin-top: auto;
+}
+.zona-tag { 
+  font-size: 0.6rem; 
+  font-weight: 800; 
+  text-transform: uppercase; 
+  color: #94a3b8; 
+  letter-spacing: 0.08em; 
+  display: block; 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-design {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #0f172a;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-design.active {
+  background: #0f172a;
+  color: white;
+  border-color: #0f172a;
+}
+
+.mesa-header { display: flex; justify-content: space-between; align-items: center; }
+.mesa-id { font-weight: 800; font-size: 1.1rem; color: #0f172a; }
+.mesa-pax { font-size: 0.7rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 6px; }
+
+.mesa-body { display: flex; align-items: center; gap: 0.5rem; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: block; }
+.status-text { font-size: 0.75rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.mesa-footer { margin-top: auto; }
+.zona-tag { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.1em; }
+
+/* Mesa Editor Panel */
+.mesa-editor-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.mesa-editor-card { background: white; width: 100%; max-width: 450px; border-radius: 2rem; padding: 3rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+.mesa-editor-card h2 { font-size: 1.75rem; font-weight: 800; margin-bottom: 2.5rem; color: #0f172a; }
+
+.edit-fields { display: flex; flex-direction: column; gap: 2rem; margin-bottom: 3rem; }
+.field { display: flex; flex-direction: column; gap: 0.75rem; }
+.field label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.1em; }
+.field select, .field input { padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; background: #f8fafc; font-weight: 600; font-family: inherit; }
+
+.editor-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.btn-save { background: #0f172a; color: white; border: none; padding: 1.25rem; border-radius: 1rem; font-weight: 700; cursor: pointer; }
+.btn-delete-mesa { background: #fee2e2; color: #991b1b; border: none; padding: 1.25rem; border-radius: 1rem; font-weight: 700; cursor: pointer; }
+
+/* Selector in Card */
+.table-selector {
+  margin-top: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  cursor: pointer;
+}
 
 /* Overlays */
 .loading-overlay { position: fixed; inset:0; background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); z-index: 2000; display: flex; align-items: center; justify-content: center; }

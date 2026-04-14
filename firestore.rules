@@ -4,5 +4,8 @@ service cloud.firestore {
     match /reservas/{reservaId} {
       allow read, write: if true;
     }
+    match /mesas/{mesaId} {
+      allow read, write: if true;
+    }
   }
 }

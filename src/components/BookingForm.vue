@@ -99,13 +99,15 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase.ts';
 
 const loading = ref(false);
 const successMsg = ref('');
 const errorMsg = ref('');
 const successRef = ref(null);
+const mesas = ref([]);
+const occupancyToday = ref([]);
 
 const minDate = computed(() => {
   const today = new Date();
@@ -117,28 +119,6 @@ const rawHoras = [
   '20:30', '21:00', '21:30', '22:00', '22:30'
 ];
 
-const horasFiltradas = computed(() => {
-  if (!form.value.fecha) return rawHoras;
-  
-  const now = new Date();
-  const selectedDate = new Date(form.value.fecha + 'T00:00:00');
-  
-  // Si la fecha seleccionada es hoy (comparando solo año/mes/día local)
-  const isToday = selectedDate.toDateString() === now.toDateString();
-  
-  if (!isToday) return rawHoras;
-  
-  // Si es hoy, filtramos horas pasadas + 1 hora de margen
-  return rawHoras.filter(hora => {
-    const [h, m] = hora.split(':').map(Number);
-    const horaCita = new Date();
-    horaCita.setHours(h, m, 0, 0);
-    
-    // Solo permitimos reservas con al menos 60 minutos de antelación
-    return horaCita.getTime() > (now.getTime() + 60 * 60000);
-  });
-});
-
 const form = ref({
   nombre_cliente: '',
   email: '',
@@ -147,8 +127,65 @@ const form = ref({
   hora: '',
   comensales: 2,
   comentarios: '',
-  marketing_consent: true // Marcado por defecto según petición del usuario
+  marketing_consent: true 
 });
+
+const horasFiltradas = computed(() => {
+  if (!form.value.fecha || mesas.value.length === 0) return rawHoras;
+  
+  const now = new Date();
+  const selectedDate = new Date(form.value.fecha + 'T00:00:00');
+  const isToday = selectedDate.toDateString() === now.toDateString();
+  
+  return rawHoras.filter(hora => {
+    // 1. Margen de tiempo para hoy (mínimo 1 hora de antelación)
+    if (isToday) {
+      const [h, m] = hora.split(':').map(Number);
+      const horaCita = new Date();
+      horaCita.setHours(h, m, 0, 0);
+      if (horaCita.getTime() <= (now.getTime() + 60 * 60000)) return false;
+    }
+
+    // 2. Comprobación de disponibilidad de mesas física
+    const tablesForPax = mesas.value.filter(m => m.pax_max >= form.value.comensales);
+    if (tablesForPax.length === 0) return false;
+
+    // 3. Comprobación de ventanas de tiempo (90min pax<=4, 120min pax>4)
+    const takenTablesCount = occupancyToday.value.filter(r => {
+      if (r.estado !== 'confirmada') return false;
+      
+      const resTime = timeToMinutes(r.hora);
+      const currTime = timeToMinutes(hora);
+      const duration = r.comensales > 4 ? 120 : 90;
+      
+      const myDuration = form.value.comensales > 4 ? 120 : 90;
+      
+      const isOverlap = (currTime >= resTime && currTime < resTime + duration) || 
+                        (resTime >= currTime && resTime < currTime + myDuration);
+      return isOverlap;
+    }).length;
+
+    return takenTablesCount < tablesForPax.length;
+  });
+});
+
+// Cargar estado de sala
+const loadRoomData = async () => {
+  const mesasSnap = await getDocs(collection(db, "mesas"));
+  mesas.value = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  if (form.value.fecha) {
+    const start = new Date(form.value.fecha + 'T00:00:00');
+    const end = new Date(form.value.fecha + 'T23:59:59');
+    const q = query(collection(db, "reservas"), where("fecha", ">=", start), where("fecha", "<=", end));
+    const resSnap = await getDocs(q);
+    occupancyToday.value = resSnap.docs.map(d => d.data());
+  }
+};
+
+watch(() => form.value.fecha, loadRoomData, { immediate: true });
+watch(() => form.value.comensales, () => { form.value.hora = ''; });
+
 
 watch(successMsg, async (newVal) => {
   if (newVal) {

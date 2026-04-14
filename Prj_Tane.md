@@ -23,6 +23,20 @@ El sistema ha sido optimizado para producción con un enfoque especial en **UX M
 - **Peticiones Especiales**: Campo de comentarios para intolerancias, alergias o solicitudes VIP.
 - **Responsividad Crítica**: Formulario totalmente adaptativo que aprovecha el 100% del ancho en dispositivos móviles.
 
+#### 2. Mejoras Implementadas (CRM PLUS y Booking)
+- **Seguridad (Firebase Auth)**: Sistema de login obligatorio para el Dashboard.
+- **Formulario de Reserva**:
+    - **Marketing Consent**: Casilla de verificación (marcada por defecto) para comunicaciones comerciales (RGPD/LOPDGDD).
+    - **Peticiones Especiales**: Campo para intolerancias/alergias.
+    - **Contraste 2.0**: Rediseño nítido de etiquetas y campos para máxima legibilidad.
+- **Dashboard Administrativo (CRM PLUS)**:
+    - **Mapa Inteligente de Mesas**: Nueva vista visual para gestionar la sala.
+    - **Asignación de Mesas**: Capacidad de vincular reservas confirmadas con mesas específicas.
+    - **Gestión de Estados**: Control de mesas (Libre, Reservada, Ocupada, Bloqueada) en tiempo real.
+    - **Exportación CSV**: Incluye marketing, comentarios y notas.
+- **Optimización de Costes (Resend)**:
+    - Emails solo para Confirmación y Cancelación manual.
+
 ### B. Vista de Administración (Dashboard Premium)
 - **Seguridad**: Pantalla de Login obligatoria mediante Firebase Auth. Solo personal autorizado accede a los datos.
 - **Interfaz de Gestión Pro**: Sidebar persistente, vista de escritorio y móvil optimizada con tarjetas táctiles.
@@ -36,7 +50,9 @@ El sistema ha sido optimizado para producción con un enfoque especial en **UX M
 
 ## 3. ESQUEMA DE BASE DE DATOS (FIRESTORE)
 
-Colección: `reservas`
+#### 3. Estado de la Base de Datos (Firestore)
+- `reservas`: Ahora incluye `mesa_id`, `marketing_consent`, `comentarios`, `notas`.
+- `mesas`: Nueva colección con `nombre`, `pax_max`, `zona`, `estado`.
 
 ```json
 {
