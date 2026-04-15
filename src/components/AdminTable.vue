@@ -301,31 +301,66 @@
         <div class="view-header">
           <div>
             <h3 class="view-heading">Mapa de Sala</h3>
-            <p class="view-sub">Haz clic en una mesa para cambiar su estado</p>
+            <p class="view-sub">
+              {{ editingMapa ? 'Arrastra mesas · Clic en hueco para añadir' : 'Clic en una mesa para cambiar su estado' }}
+            </p>
           </div>
-          <div class="mapa-legend">
-            <span class="legend-dot legend-dot--libre">Libre</span>
-            <span class="legend-dot legend-dot--reservada">Reservada</span>
-            <span class="legend-dot legend-dot--ocupada">Ocupada</span>
+          <div class="mapa-header-actions">
+            <div v-if="!editingMapa" class="mapa-legend">
+              <span class="legend-dot legend-dot--libre">Libre</span>
+              <span class="legend-dot legend-dot--reservada">Reservada</span>
+              <span class="legend-dot legend-dot--ocupada">Ocupada</span>
+            </div>
+            <button v-if="!editingMapa" @click="editingMapa = true" class="btn-outline-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              EDITAR MAPA
+            </button>
+            <button v-else @click="editingMapa = false" class="btn-primary-sm">✓ LISTO</button>
           </div>
         </div>
 
-        <div v-if="mesas.length === 0" class="state-empty">
-          <p class="empty-icon">🪑</p>
-          <p class="empty-title">Sin mesas configuradas</p>
-          <p class="empty-sub">Añade mesas desde Firestore o contacta con soporte.</p>
-        </div>
+        <div class="mapa-grid-wrap">
+          <div class="mapa-grid" :class="{ 'mapa-grid--editing': editingMapa }">
 
-        <div v-else class="mapa-grid-wrap">
-          <div class="mapa-grid">
-            <button v-for="mesa in mesas" :key="mesa.id"
-              :class="['mesa-tile', `mesa-tile--${mesa.estado}`]"
-              :style="{ gridColumn: (mesa.x || 1) + 1, gridRow: (mesa.y || 1) + 1 }"
-              @click="toggleMesaEstado(mesa)"
+            <!-- Celdas de fondo (solo modo edición) -->
+            <template v-if="editingMapa">
+              <div v-for="cell in mapaGridCells" :key="cell.key"
+                class="mapa-cell"
+                :class="{
+                  'mapa-cell--over':     dragOverCell && dragOverCell.x === cell.x && dragOverCell.y === cell.y,
+                  'mapa-cell--occupied': occupiedCells.has(`${cell.x}-${cell.y}`)
+                }"
+                :style="{ gridColumn: cell.x + 1, gridRow: cell.y + 1 }"
+                @dragover.prevent="dragOverCell = cell"
+                @dragleave="dragOverCell = null"
+                @drop.prevent="dropMesa(cell.x, cell.y)"
+                @click="openAddMesa(cell.x, cell.y)"
+              ></div>
+            </template>
+
+            <!-- Mesa tiles -->
+            <div v-for="mesa in mesas" :key="mesa.id"
+              :class="['mesa-tile', `mesa-tile--${mesa.estado}`, { 'mesa-tile--edit': editingMapa }]"
+              :style="{ gridColumn: (mesa.x ?? 0) + 1, gridRow: (mesa.y ?? 0) + 1 }"
+              :draggable="editingMapa"
+              @dragstart="editingMapa && startDragMesa($event, mesa)"
+              @click.stop="editingMapa ? openEditMesa(mesa) : toggleMesaEstado(mesa)"
               :title="`${mesa.nombre} — ${mesa.pax_max} pax`">
               <span class="mesa-name">{{ mesa.nombre }}</span>
               <span class="mesa-cap">{{ mesa.pax_max }}p</span>
-            </button>
+              <button v-if="editingMapa" @click.stop="confirmDeleteMesa(mesa)"
+                class="mesa-del-btn" title="Eliminar mesa">✕</button>
+            </div>
+
+            <!-- Hint cuando no hay mesas -->
+            <div v-if="mesas.length === 0 && !editingMapa" class="mapa-empty-hint">
+              <p class="empty-icon">🪑</p>
+              <p class="empty-title">Sin mesas configuradas</p>
+              <p class="empty-sub">Pulsa <strong>EDITAR MAPA</strong> para añadir mesas.</p>
+            </div>
+            <div v-if="mesas.length === 0 && editingMapa" class="mapa-empty-hint">
+              Clic en cualquier celda para colocar tu primera mesa
+            </div>
           </div>
         </div>
       </section>
@@ -408,6 +443,35 @@
     </div>
   </Teleport>
 
+  <!-- ══ MODAL: Mesa (añadir / editar) ══ -->
+  <Teleport to="body">
+    <div v-if="mesaModal.show" class="modal-backdrop" @click.self="mesaModal.show = false" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <h3 class="modal-title">{{ mesaModal.isNew ? 'Nueva mesa' : 'Editar mesa' }}</h3>
+        <p class="mesa-modal-pos">
+          Posición: <strong>Col {{ mesaModal.x + 1 }}, Fila {{ mesaModal.y + 1 }}</strong>
+        </p>
+        <div class="field-row">
+          <div class="field">
+            <label>Nombre</label>
+            <input v-model="mesaModal.nombre" type="text" placeholder="M1, Terraza 2…"
+              @keyup.enter="saveMesa" autofocus>
+          </div>
+          <div class="field field--narrow">
+            <label>Capacidad (pax)</label>
+            <input v-model.number="mesaModal.pax_max" type="number" min="1" max="30">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="mesaModal.show = false" class="btn-ghost-sm">CANCELAR</button>
+          <button @click="saveMesa" :disabled="!mesaModal.nombre.trim()" class="btn-primary-sm">
+            {{ mesaModal.isNew ? 'CREAR MESA' : 'GUARDAR CAMBIOS' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
   <!-- ══ MODAL: Confirmar Borrado ══ -->
   <Teleport to="body">
     <div v-if="deleteModal.show" class="modal-backdrop" @click.self="deleteModal.show = false" role="dialog" aria-modal="true">
@@ -476,6 +540,12 @@ const customerSearch = ref('');
 
 // ─── Inline notes ────────────────────────────────────
 const notasEdit = ref({});
+
+// ─── Mapa editor ─────────────────────────────────────
+const editingMapa  = ref(false);
+const dragMesaId   = ref(null);
+const dragOverCell = ref(null);
+const mesaModal    = ref({ show: false, isNew: true, id: '', nombre: '', pax_max: 4, x: 0, y: 0 });
 
 // ─── Config ──────────────────────────────────────────
 const statusTabs = [
@@ -585,6 +655,21 @@ const filteredCustomers = computed(() => {
   return uniqueCustomers.value.filter(c =>
     c.nombre?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)
   );
+});
+
+const GRID_COLS = 13;
+const GRID_ROWS = 9;
+const mapaGridCells = computed(() => {
+  const cells = [];
+  for (let y = 0; y < GRID_ROWS; y++)
+    for (let x = 0; x < GRID_COLS; x++)
+      cells.push({ key: `${x}-${y}`, x, y });
+  return cells;
+});
+const occupiedCells = computed(() => {
+  const s = new Set();
+  mesas.value.forEach(m => s.add(`${m.x ?? 0}-${m.y ?? 0}`));
+  return s;
 });
 
 // ─── Helpers ─────────────────────────────────────────
@@ -751,6 +836,58 @@ const toggleMesaEstado = async (mesa) => {
   await updateDoc(doc(db, 'mesas', mesa.id), {
     estado: cycle[mesa.estado] ?? 'libre'
   });
+};
+
+// ─── Mapa editor actions ─────────────────────────────
+const openAddMesa = (x, y) => {
+  if (occupiedCells.value.has(`${x}-${y}`)) return;
+  mesaModal.value = { show: true, isNew: true, id: '', nombre: '', pax_max: 4, x, y };
+};
+
+const openEditMesa = (mesa) => {
+  mesaModal.value = {
+    show: true, isNew: false, id: mesa.id,
+    nombre: mesa.nombre, pax_max: mesa.pax_max,
+    x: mesa.x ?? 0, y: mesa.y ?? 0,
+  };
+};
+
+const saveMesa = async () => {
+  const { isNew, id, nombre, pax_max, x, y } = mesaModal.value;
+  if (!nombre.trim()) return;
+  if (isNew) {
+    await addDoc(collection(db, 'mesas'), {
+      restaurant_id: currentRestaurantId.value,
+      nombre: nombre.trim(),
+      pax_max: Number(pax_max),
+      x, y, estado: 'libre',
+      creado_en: serverTimestamp(),
+    });
+  } else {
+    await updateDoc(doc(db, 'mesas', id), {
+      nombre: nombre.trim(),
+      pax_max: Number(pax_max),
+      x, y,
+    });
+  }
+  mesaModal.value.show = false;
+};
+
+const confirmDeleteMesa = async (mesa) => {
+  if (!confirm(`¿Eliminar "${mesa.nombre}"? Esta acción no se puede deshacer.`)) return;
+  await deleteDoc(doc(db, 'mesas', mesa.id));
+};
+
+const startDragMesa = (e, mesa) => {
+  dragMesaId.value = mesa.id;
+  e.dataTransfer.effectAllowed = 'move';
+};
+
+const dropMesa = async (x, y) => {
+  if (!dragMesaId.value) return;
+  await updateDoc(doc(db, 'mesas', dragMesaId.value), { x, y });
+  dragMesaId.value  = null;
+  dragOverCell.value = null;
 };
 
 // ─── Restaurant (SaaS) actions ────────────────────────
@@ -1224,6 +1361,55 @@ const execDelete = async () => {
 .legend-dot--libre::before    { background: #dcfce7; border: 1px solid #22c55e; }
 .legend-dot--reservada::before{ background: #fef9c3; border: 1px solid #f59e0b; }
 .legend-dot--ocupada::before  { background: #fee2e2; border: 1px solid #ef4444; }
+
+/* ── Mapa editor ─────────────────────────────────── */
+.mapa-header-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.mapa-grid--editing  { background: #f0f4ff; border-color: #c7d2fe; }
+.mapa-cell {
+  border-radius: 4px; border: 1.5px dashed #d1d5db;
+  cursor: cell; transition: background 0.1s, border-color 0.1s;
+  min-height: 0; min-width: 0;
+}
+.mapa-cell:hover:not(.mapa-cell--occupied) { background: #e0e7ff; border-color: #818cf8; }
+.mapa-cell--over     { background: #c7d2fe !important; border-color: #6366f1 !important; }
+.mapa-cell--occupied { cursor: default; border-color: transparent; pointer-events: none; }
+.mesa-tile--edit     { cursor: grab; position: relative; }
+.mesa-tile--edit:active { cursor: grabbing; }
+.mesa-tile--edit:hover  { z-index: 5; }
+.mesa-del-btn {
+  position: absolute; top: -6px; right: -6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #ef4444; color: #fff; border: none;
+  font-size: 0.55rem; font-weight: 800; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1; padding: 0; z-index: 10;
+  transition: transform 0.15s;
+}
+.mesa-del-btn:hover { transform: scale(1.2); }
+.mapa-empty-hint {
+  grid-column: 1 / -1; grid-row: 1 / 4;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #94a3b8; font-size: 0.75rem; font-weight: 500;
+  text-align: center; padding: 2rem; pointer-events: none;
+  gap: 0.25rem;
+}
+.btn-outline-sm {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.45rem 0.85rem; background: #fff; color: #000;
+  border: 1.5px solid #000; font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.06em; border-radius: 4px; cursor: pointer;
+  transition: background 0.15s, color 0.15s; white-space: nowrap;
+}
+.btn-outline-sm:hover { background: #000; color: #fff; }
+.mesa-modal-pos {
+  font-size: 0.7rem; color: #888;
+  margin: -0.5rem 0 1.25rem;
+}
+.mesa-modal-pos strong { color: #000; }
+.field-row { display: flex; gap: 0.75rem; }
+.field-row .field { flex: 1; }
+.field--narrow { flex: 0 0 120px !important; }
 
 /* ── SaaS cards ──────────────────────────────────── */
 .saas-grid {
