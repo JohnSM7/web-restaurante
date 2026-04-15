@@ -185,8 +185,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { collection, addDoc, getDocs, getDoc, doc, query, where, serverTimestamp } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
-import { db, auth } from '../lib/firebase.ts';
+import { db } from '../lib/firebase.ts';
 import {
   getTurnTime, BUFFER_MIN, timeToMinutes,
   findBestTable, countAvailableTables,
@@ -233,9 +232,6 @@ const computedHoras = computed(() => {
 });
 
 onMounted(async () => {
-  // Anonymous sign-in so Firestore auth rules allow reading reservas for availability
-  await signInAnonymously(auth).catch(() => {});
-
   // Read ?id= from URL — works at runtime even in SSG builds
   const urlId = new URLSearchParams(window.location.search).get('id');
   if (urlId) resolvedId.value = urlId;
