@@ -1,0 +1,29 @@
+---
+import Layout from '../layouts/Layout.astro';
+import BookingForm from '../components/BookingForm.vue';
+
+// Obtener el ID del restaurante de la URL (ej: /booking-widget?id=the-editorial)
+// Si no hay ID, por defecto usamos 'the-editorial'
+const restaurantId = Astro.url.searchParams.get('id') || 'the-editorial';
+---
+
+<Layout title="Reserva tu mesa">
+	<main class="min-h-screen bg-white py-12 px-4">
+		<div class="max-w-4xl mx-auto">
+			<div class="text-center mb-16">
+				<h1 class="font-serif text-5xl md:text-7xl mb-6 tracking-tighter uppercase">Reservas</h1>
+				<div class="h-px w-24 bg-black mx-auto mb-6"></div>
+				<p class="text-[0.65rem] uppercase tracking-[0.4em] text-gray-400 font-bold">Reserva tu experiencia gastronómica</p>
+			</div>
+			
+			<BookingForm client:load restaurantId={restaurantId} />
+		</div>
+	</main>
+</Layout>
+
+<style>
+	/* Estilos mínimos para que el widget se vea bien embebido */
+	body {
+		background: white;
+	}
+</style>

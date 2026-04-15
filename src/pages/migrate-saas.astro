@@ -1,0 +1,101 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Migración SaaS Pro">
+	<main class="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+		<div class="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+			<h1 class="text-2xl font-bold mb-4 italic font-serif">Tane SaaS Migrator</h1>
+			<p class="text-gray-600 mb-8 text-sm">Este proceso habilitará la seguridad multi-tenant en tus datos actuales.</p>
+			
+			<div id="authCheck" class="mb-6 p-4 bg-yellow-50 text-yellow-800 text-xs rounded-lg hidden">
+				Debes estar logueado en el Dashboard para migrar.
+			</div>
+
+			<button id="migrateBtn" class="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg active:scale-95">
+				ACTIVAR SEGURIDAD SAAS
+			</button>
+
+			<div id="status" class="mt-6 text-[0.7rem] font-mono text-gray-500 hidden text-left space-y-2 p-4 bg-gray-50 rounded-lg border border-gray-100">
+				Iniciando...
+			</div>
+		</div>
+	</main>
+</Layout>
+
+<script>
+	import { db, auth } from '../lib/firebase.ts';
+	import { collection, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
+	import { onAuthStateChanged } from 'firebase/auth';
+
+	const btn = document.getElementById('migrateBtn');
+	const status = document.getElementById('status');
+	const authCheck = document.getElementById('authCheck');
+
+	onAuthStateChanged(auth, (user) => {
+		if (!user) {
+			authCheck.classList.remove('hidden');
+			btn.setAttribute('disabled', 'true');
+			btn.classList.add('opacity-50');
+		} else {
+			authCheck.classList.add('hidden');
+			btn.removeAttribute('disabled');
+			btn.classList.remove('opacity-50');
+		}
+	});
+
+	btn?.addEventListener('click', async () => {
+		const user = auth.currentUser;
+		if (!user) return alert('Por favor, loguéate primero en el Dashboard');
+
+		btn.setAttribute('disabled', 'true');
+		status.classList.remove('hidden');
+		
+		try {
+			// PASO 1: CREAR PERFIL (CRÍTICO PARA PERMISOS)
+			status.innerHTML += '<div>> Creando perfil de seguridad...</div>';
+			await setDoc(doc(db, "users", user.uid), { 
+				restaurant_id: 'the-editorial',
+				email: user.email,
+				role: 'admin',
+				migrated_at: new Date()
+			});
+			status.innerHTML += '<div class="text-green-600">> Perfil creado correctamente.</div>';
+
+			// PASO 2: MIGRAR MESAS
+			status.innerHTML += '<div>> Vinculando mesas físicas...</div>';
+			const mesasSnap = await getDocs(collection(db, "mesas"));
+			let mesasCount = 0;
+			for (const d of mesasSnap.docs) {
+				if (!d.data().restaurant_id) {
+					await updateDoc(doc(db, "mesas", d.id), { restaurant_id: 'the-editorial' });
+					mesasCount++;
+				}
+			}
+			status.innerHTML += `<div class="text-green-600">> ${mesasCount} mesas protegidas.</div>`;
+
+			// PASO 3: MIGRAR RESERVAS
+			status.innerHTML += '<div>> Protegiendo historial de reservas...</div>';
+			const resSnap = await getDocs(collection(db, "reservas"));
+			let resCount = 0;
+			for (const d of resSnap.docs) {
+				if (!d.data().restaurant_id) {
+					await updateDoc(doc(db, "reservas", d.id), { restaurant_id: 'the-editorial' });
+					resCount++;
+				}
+			}
+			status.innerHTML += `<div class="text-green-600">> ${resCount} reservas blindadas.</div>`;
+
+			status.innerHTML += '<div class="mt-4 p-2 bg-green-100 text-green-800 font-bold text-center rounded">> MIGRACIÓN COMPLETA ✅</div>';
+			
+			setTimeout(() => {
+				window.location.href = '/admin/dashboard';
+			}, 2000);
+
+		} catch (err) {
+			console.error(err);
+			status.innerHTML += `<div class="text-red-600 font-bold mt-4">> ERROR: ${err.message}</div>`;
+			btn.removeAttribute('disabled');
+		}
+	});
+</script>

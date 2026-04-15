@@ -1,98 +1,159 @@
 <template>
-  <div class="editorial-booking-form">
-    <div v-if="successMsg" ref="successRef" class="success-alert">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mb-2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      <p class="font-serif text-lg mb-1">¡Solicitud recibida!</p>
-      <p class="text-[0.65rem] opacity-70 uppercase tracking-widest">Te confirmaremos por email en breve.</p>
+  <div class="booking-form-wrap">
+
+    <!-- Success screen -->
+    <div v-if="successMsg" ref="successRef" class="success-screen" role="alert">
+      <div class="success-check">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <p class="success-title">¡Solicitud recibida!</p>
+      <p class="success-sub">Te confirmaremos la reserva por email en breve.</p>
     </div>
 
-    <form @submit.prevent="submitBooking" class="space-y-10 md:space-y-16">
-      <div v-if="errorMsg" class="error-alert">
+    <form v-else @submit.prevent="submitBooking" novalidate>
+
+      <!-- Global error -->
+      <div v-if="errorMsg" class="form-error-banner" role="alert">
         {{ errorMsg }}
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 lg:gap-x-20 gap-y-10">
-        <div class="form-group">
-          <label class="editorial-label">Nombre completo</label>
-          <input v-model="form.nombre_cliente" type="text" required
-            class="editorial-input"
-            placeholder="Introduce tu nombre">
-        </div>
-
-        <div class="form-group">
-          <label class="editorial-label">Correo electrónico</label>
-          <input v-model="form.email" type="email" required
-            class="editorial-input"
-            placeholder="email@ejemplo.com">
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 lg:gap-x-20 gap-y-10">
-        <div class="form-group">
-          <label class="editorial-label">Teléfono</label>
-          <input v-model="form.telefono" type="tel" required
-            class="editorial-input"
-            placeholder="+34 ...">
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-6">
-          <div class="form-group sm:col-span-2">
-            <label class="editorial-label">Fecha</label>
-            <input v-model="form.fecha" type="date" required :min="minDate"
-              class="editorial-input date-input">
+      <!-- ── STEP 1: Personal data ── -->
+      <fieldset class="form-section">
+        <div class="form-grid form-grid--2">
+          <div class="field-group">
+            <label class="field-label" for="nombre">Nombre completo</label>
+            <input id="nombre" v-model="form.nombre_cliente" type="text" required
+              class="field-input" placeholder="Tu nombre completo"
+              autocomplete="name">
           </div>
-          <div class="form-group">
-             <label class="editorial-label">Pax</label>
-             <select v-model="form.comensales" required class="editorial-input select-input">
-                <option v-for="n in 20" :key="n" :value="n">{{ n }} personas</option>
-             </select>
+          <div class="field-group">
+            <label class="field-label" for="email">Correo electrónico</label>
+            <input id="email" v-model="form.email" type="email" required
+              class="field-input" placeholder="email@ejemplo.com"
+              autocomplete="email">
           </div>
         </div>
-      </div>
+      </fieldset>
 
-      <div class="form-group !mb-0">
-        <label class="editorial-label">Hora del servicio</label>
-        <div class="grid grid-cols-3 md:grid-cols-5 gap-3 mt-6">
-            <button v-for="hora in horasFiltradas" 
-                    :key="hora" 
-                    type="button"
-                    @click="form.hora = hora"
-                    :class="['time-slot', form.hora === hora ? 'active' : '']">
-                {{ hora }}
-            </button>
+      <!-- ── STEP 2: Booking details ── -->
+      <fieldset class="form-section">
+        <div class="form-grid form-grid--3">
+
+          <div class="field-group">
+            <label class="field-label" for="telefono">Teléfono</label>
+            <input id="telefono" v-model="form.telefono" type="tel" required
+              class="field-input" placeholder="+34 600 000 000"
+              autocomplete="tel">
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="fecha">Fecha</label>
+            <input id="fecha" v-model="form.fecha" type="date" required
+              :min="minDate" class="field-input">
+          </div>
+
+          <!-- Pax stepper -->
+          <div class="field-group">
+            <label class="field-label">Comensales</label>
+            <div class="pax-stepper">
+              <button type="button" @click="decrementPax" :disabled="form.comensales <= 1"
+                class="pax-btn" aria-label="Reducir comensales">−</button>
+              <span class="pax-count">{{ form.comensales }}</span>
+              <button type="button" @click="incrementPax" :disabled="form.comensales >= 20"
+                class="pax-btn" aria-label="Aumentar comensales">+</button>
+            </div>
+            <p class="field-hint">máx. 20 personas</p>
+          </div>
         </div>
-        <div v-if="horasFiltradas.length === 0 && form.fecha" class="text-[0.6rem] text-red-800 uppercase tracking-widest mt-4">
-          No hay más horas disponibles para hoy. Por favor, selecciona otra fecha.
+      </fieldset>
+
+      <!-- ── STEP 3: Time slots ── -->
+      <fieldset class="form-section">
+        <label class="field-label">Hora del servicio</label>
+
+        <!-- Loading slots -->
+        <div v-if="loadingSlots" class="slots-loading">
+          <div class="slots-skeleton" v-for="i in 10" :key="i"></div>
         </div>
+
+        <!-- Slots grid -->
+        <div v-else-if="!form.fecha" class="slots-hint">
+          Selecciona una fecha para ver disponibilidad de horarios.
+        </div>
+
+        <div v-else-if="computedSlots.length === 0" class="slots-empty">
+          No hay horarios disponibles para hoy. Por favor, selecciona otra fecha.
+        </div>
+
+        <div v-else class="slots-grid">
+          <button
+            v-for="slot in computedSlots"
+            :key="slot.hora"
+            type="button"
+            @click="slot.available && selectHora(slot.hora)"
+            :disabled="!slot.available"
+            :class="[
+              'time-slot',
+              form.hora === slot.hora && 'time-slot--selected',
+              !slot.available && 'time-slot--full',
+              slot.available && slot.remaining <= 1 && 'time-slot--limited',
+            ]"
+            :title="slot.available ? `${slot.remaining} mesa${slot.remaining !== 1 ? 's' : ''} disponible${slot.remaining !== 1 ? 's' : ''}` : 'Completo'"
+            :aria-pressed="form.hora === slot.hora">
+            <span class="slot-time">{{ slot.hora }}</span>
+            <span v-if="slot.available && slot.remaining <= 1" class="slot-tag">última</span>
+            <span v-else-if="!slot.available" class="slot-tag">completo</span>
+          </button>
+        </div>
+
+        <!-- Hidden input for form validation -->
         <input type="hidden" v-model="form.hora" required>
-      </div>
+        <p v-if="showHoraError" class="field-error">Por favor, selecciona una hora.</p>
+      </fieldset>
 
-      <div class="form-group">
-        <label class="editorial-label">Peticiones especiales (Intolerancias, alergias, etc.)</label>
-        <textarea v-model="form.comentarios" 
-          class="editorial-input min-h-[100px] !border-b !py-4"
-          placeholder="Ej: Tenemos un comensal celíaco, preferimos mesa cerca de la ventana..."></textarea>
-      </div>
+      <!-- ── STEP 4: Special requests ── -->
+      <fieldset class="form-section">
+        <div class="field-group">
+          <label class="field-label" for="comentarios">
+            Peticiones especiales
+            <span class="field-label-opt">(opcional)</span>
+          </label>
+          <textarea id="comentarios" v-model="form.comentarios"
+            class="field-input field-textarea"
+            placeholder="Ej: Tenemos un comensal celíaco, preferimos mesa cerca de la ventana, celebración de cumpleaños…"
+            rows="3"></textarea>
+        </div>
+      </fieldset>
 
-      <div class="form-group flex items-start gap-4 pt-4">
-        <input v-model="form.marketing_consent" type="checkbox" id="marketing" 
-          class="w-5 h-5 mt-1 accent-black cursor-pointer">
-        <label for="marketing" class="text-[0.7rem] text-gray-600 leading-relaxed cursor-pointer select-none">
-          Deseo recibir novedades, promociones e invitaciones exclusivas de <strong>THE EDITORIAL</strong>. 
-          <span class="block text-[0.6rem] mt-1 opacity-70">Puedes dárte de baja en cualquier momento.</span>
+      <!-- ── GDPR consent ── -->
+      <fieldset class="form-section form-section--consent">
+        <label class="consent-label">
+          <input v-model="form.marketing_consent" type="checkbox"
+            id="marketing" class="consent-checkbox">
+          <span class="consent-text">
+            Deseo recibir novedades, promociones e invitaciones exclusivas de
+            <strong>THE EDITORIAL</strong>.
+            <span class="consent-hint">Puedes darte de baja en cualquier momento.</span>
+          </span>
         </label>
-      </div>
+      </fieldset>
 
-      <div class="pt-8">
-        <button type="submit" :disabled="loading" class="editorial-btn">
-          <span>{{ loading ? 'ENVIANDO SOLICITUD...' : 'CONFIRMAR RESERVA' }}</span>
+      <!-- ── Submit ── -->
+      <div class="form-submit-area">
+        <button type="submit" :disabled="submitting" class="submit-btn">
+          <span v-if="submitting" class="submit-spinner"></span>
+          {{ submitting ? 'ENVIANDO SOLICITUD…' : 'CONFIRMAR RESERVA' }}
         </button>
-        
-        <p class="terms-text !mt-4">
-          Al confirmar, aceptas nuestra <a href="#" class="underline">Política de Privacidad</a> y los términos del servicio.
-          Los datos serán tratados según la LOPDGDD para la gestión de tu reserva.
+        <p class="form-legal">
+          Al confirmar, aceptas nuestra
+          <a href="#" class="legal-link">Política de Privacidad</a>
+          y los términos del servicio.
+          Los datos serán tratados según la LOPDGDD.
         </p>
       </div>
+
     </form>
   </div>
 </template>
@@ -102,284 +163,449 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase.ts';
 
-const loading = ref(false);
-const successMsg = ref('');
-const errorMsg = ref('');
-const successRef = ref(null);
-const mesas = ref([]);
+const props = defineProps({
+  restaurantId: { type: String, default: 'the-editorial' }
+});
+
+// ─── State ───────────────────────────────────────────
+const submitting   = ref(false);
+const successMsg   = ref('');
+const errorMsg     = ref('');
+const successRef   = ref(null);
+const showHoraError = ref(false);
+
+const mesas          = ref([]);
 const occupancyToday = ref([]);
+const loadingSlots   = ref(false);
 
-const minDate = computed(() => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-});
-
-const rawHoras = [
-  '13:30', '14:00', '14:30', '15:00', '15:30',
-  '20:30', '21:00', '21:30', '22:00', '22:30'
-];
-
+// ─── Form ────────────────────────────────────────────
 const form = ref({
-  nombre_cliente: '',
-  email: '',
-  telefono: '',
-  fecha: '',
-  hora: '',
-  comensales: 2,
-  comentarios: '',
-  marketing_consent: true 
+  nombre_cliente:    '',
+  email:             '',
+  telefono:          '',
+  fecha:             '',
+  hora:              '',
+  comensales:        2,
+  comentarios:       '',
+  marketing_consent: true,
 });
 
-const horasFiltradas = computed(() => {
-  if (!form.value.fecha || mesas.value.length === 0) return rawHoras;
-  
-  const now = new Date();
-  const selectedDate = new Date(form.value.fecha + 'T00:00:00');
-  const isToday = selectedDate.toDateString() === now.toDateString();
-  
-  return rawHoras.filter(hora => {
-    // 1. Margen de tiempo para hoy (mínimo 1 hora de antelación)
-    if (isToday) {
-      const [h, m] = hora.split(':').map(Number);
-      const horaCita = new Date();
-      horaCita.setHours(h, m, 0, 0);
-      if (horaCita.getTime() <= (now.getTime() + 60 * 60000)) return false;
-    }
+// ─── Date constraints ─────────────────────────────────
+const minDate = computed(() => new Date().toISOString().split('T')[0]);
 
-    // 2. Comprobación de disponibilidad de mesas física
-    const tablesForPax = mesas.value.filter(m => m.pax_max >= form.value.comensales);
-    if (tablesForPax.length === 0) return false;
-
-    // 3. Comprobación de ventanas de tiempo (90min pax<=4, 120min pax>4)
-    const takenTablesCount = occupancyToday.value.filter(r => {
-      if (r.estado !== 'confirmada') return false;
-      
-      const resTime = timeToMinutes(r.hora);
-      const currTime = timeToMinutes(hora);
-      const duration = r.comensales > 4 ? 120 : 90;
-      
-      const myDuration = form.value.comensales > 4 ? 120 : 90;
-      
-      const isOverlap = (currTime >= resTime && currTime < resTime + duration) || 
-                        (resTime >= currTime && resTime < currTime + myDuration);
-      return isOverlap;
-    }).length;
-
-    return takenTablesCount < tablesForPax.length;
-  });
-});
-
-// Cargar estado de sala
-const loadRoomData = async () => {
-  const mesasSnap = await getDocs(collection(db, "mesas"));
-  mesas.value = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  if (form.value.fecha) {
-    const start = new Date(form.value.fecha + 'T00:00:00');
-    const end = new Date(form.value.fecha + 'T23:59:59');
-    const q = query(collection(db, "reservas"), where("fecha", ">=", start), where("fecha", "<=", end));
-    const resSnap = await getDocs(q);
-    occupancyToday.value = resSnap.docs.map(d => d.data());
+// ─── Pax stepper ──────────────────────────────────────
+const decrementPax = () => {
+  if (form.value.comensales > 1) {
+    form.value.comensales--;
+    form.value.hora = '';
+  }
+};
+const incrementPax = () => {
+  if (form.value.comensales < 20) {
+    form.value.comensales++;
+    form.value.hora = '';
   }
 };
 
-watch(() => form.value.fecha, loadRoomData, { immediate: true });
-watch(() => form.value.comensales, () => { form.value.hora = ''; });
+const selectHora = (hora) => {
+  form.value.hora = hora;
+  showHoraError.value = false;
+};
 
+// ─── Raw time slots ───────────────────────────────────
+const RAW_HORAS = [
+  '13:30', '14:00', '14:30', '15:00', '15:30',
+  '20:30', '21:00', '21:30', '22:00', '22:30',
+];
 
-watch(successMsg, async (newVal) => {
-  if (newVal) {
+// ─── FIXED: timeToMinutes helper ──────────────────────
+const timeToMinutes = (timeStr) => {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+};
+
+// ─── Computed slots with availability ────────────────
+const computedSlots = computed(() => {
+  if (!form.value.fecha || mesas.value.length === 0) {
+    // No date or no tables: return all times without availability info
+    return RAW_HORAS.map(hora => ({ hora, available: true, remaining: 99 }));
+  }
+
+  const now = new Date();
+  const selectedDate = new Date(form.value.fecha + 'T00:00:00');
+  const isToday = selectedDate.toDateString() === now.toDateString();
+
+  const tablesForPax = mesas.value.filter(m => m.pax_max >= form.value.comensales);
+  const myDuration   = form.value.comensales > 4 ? 120 : 90;
+
+  return RAW_HORAS.map(hora => {
+    // 1. Block past hours today (min 60 min lead time)
+    if (isToday) {
+      const [h, m] = hora.split(':').map(Number);
+      const slotTime = new Date();
+      slotTime.setHours(h, m, 0, 0);
+      if (slotTime.getTime() <= now.getTime() + 60 * 60_000) {
+        return { hora, available: false, remaining: 0 };
+      }
+    }
+
+    // 2. No tables that can fit pax
+    if (tablesForPax.length === 0) {
+      return { hora, available: false, remaining: 0 };
+    }
+
+    // 3. Count tables occupied during this time window (only confirmed bookings)
+    const myStart = timeToMinutes(hora);
+    const myEnd   = myStart + myDuration;
+
+    const takenTableIds = new Set(
+      occupancyToday.value
+        .filter(r => {
+          if (r.estado !== 'confirmada') return false;
+          const resStart    = timeToMinutes(r.hora);
+          const resDuration = r.comensales > 4 ? 120 : 90;
+          const resEnd      = resStart + resDuration;
+          // Overlap if intervals intersect
+          return myStart < resEnd && myEnd > resStart;
+        })
+        .map(r => r.mesa_id)
+        .filter(Boolean)
+    );
+
+    const available = tablesForPax.filter(m => !takenTableIds.has(m.id));
+    const remaining = available.length;
+
+    return { hora, available: remaining > 0, remaining };
+  });
+});
+
+// ─── Load room data when date changes ─────────────────
+const loadRoomData = async () => {
+  if (!form.value.fecha) return;
+
+  loadingSlots.value = true;
+  try {
+    // Load tables
+    const mesasSnap = await getDocs(
+      query(collection(db, 'mesas'), where('restaurant_id', '==', props.restaurantId))
+    );
+    mesas.value = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Load existing confirmed bookings for the selected date
+    const start = new Date(form.value.fecha + 'T00:00:00');
+    const end   = new Date(form.value.fecha + 'T23:59:59');
+    const resSnap = await getDocs(
+      query(
+        collection(db, 'reservas'),
+        where('restaurant_id', '==', props.restaurantId),
+        where('fecha', '>=', start),
+        where('fecha', '<=', end)
+      )
+    );
+    occupancyToday.value = resSnap.docs.map(d => d.data());
+  } catch (err) {
+    console.error('[BookingForm] loadRoomData error:', err);
+  } finally {
+    loadingSlots.value = false;
+  }
+};
+
+// ─── Watchers ─────────────────────────────────────────
+watch(() => form.value.fecha, () => {
+  form.value.hora = '';
+  loadRoomData();
+});
+
+// When pax changes, clear hora and re-evaluate (slots auto-recompute)
+watch(() => form.value.comensales, () => {
+  form.value.hora = '';
+});
+
+// Scroll to success message
+watch(successMsg, async (val) => {
+  if (val) {
     await nextTick();
     successRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 });
 
+// ─── Submit ───────────────────────────────────────────
 const submitBooking = async () => {
   if (!form.value.hora) {
-    errorMsg.value = "Por favor, selecciona una hora para tu reserva.";
+    showHoraError.value = true;
+    errorMsg.value = 'Por favor, selecciona una hora para tu reserva.';
     return;
   }
 
-  loading.value = true;
+  submitting.value = true;
   successMsg.value = '';
-  errorMsg.value = '';
+  errorMsg.value   = '';
 
   try {
     const dateObj = new Date(`${form.value.fecha}T${form.value.hora}:00`);
-    
-    await addDoc(collection(db, "reservas"), {
-      nombre_cliente: form.value.nombre_cliente,
-      email: form.value.email,
-      telefono: form.value.telefono,
-      fecha: dateObj,
-      hora: form.value.hora,
-      comensales: Number(form.value.comensales),
-      comentarios: form.value.comentarios || '',
+
+    await addDoc(collection(db, 'reservas'), {
+      restaurant_id:     props.restaurantId,
+      nombre_cliente:    form.value.nombre_cliente,
+      email:             form.value.email,
+      telefono:          form.value.telefono,
+      fecha:             dateObj,
+      hora:              form.value.hora,
+      comensales:        Number(form.value.comensales),
+      comentarios:       form.value.comentarios || '',
       marketing_consent: Boolean(form.value.marketing_consent),
-      estado: "pendiente",
-      creado_en: serverTimestamp()
+      estado:            'pendiente',
+      creado_en:         serverTimestamp(),
+      notas:             '',
     });
 
     successMsg.value = 'Solicitud recibida';
+
+    // Reset form
     form.value = {
-      nombre_cliente: '',
-      email: '',
-      telefono: '',
-      fecha: '',
-      hora: '',
-      comensales: 2,
-      comentarios: '',
-      marketing_consent: true
+      nombre_cliente:    '',
+      email:             '',
+      telefono:          '',
+      fecha:             '',
+      hora:              '',
+      comensales:        2,
+      comentarios:       '',
+      marketing_consent: true,
     };
+    mesas.value          = [];
+    occupancyToday.value = [];
   } catch (err) {
-    console.error("Booking Error:", err);
-    errorMsg.value = `Error: ${err.message || 'No se pudo procesar la reserva'}`;
+    console.error('[BookingForm] submit error:', err);
+    errorMsg.value = 'No se pudo procesar la reserva. Inténtalo de nuevo o llámanos.';
   } finally {
-    loading.value = false;
+    submitting.value = false;
   }
 };
 </script>
 
 <style scoped>
-.editorial-booking-form {
-  font-family: 'Work Sans', sans-serif;
-  max-width: 1000px;
-  margin: 0 auto;
-}
+/* ════════════════════════════════════════════════════
+   BOOKING FORM — Editorial Design System
+   Hereda tokens de global.css
+════════════════════════════════════════════════════ */
 
-.form-group {
-  margin-bottom: 0;
-}
-
-.editorial-label {
-  display: block;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.35em;
-  color: #000; /* Pure black for labels */
-  margin-bottom: 0.75rem;
-  font-weight: 800; /* Significant weight */
-}
-
-.editorial-input {
+.booking-form-wrap {
+  font-family: 'Work Sans', system-ui, sans-serif;
+  max-width: 600px;
   width: 100%;
+}
+
+/* ── Form sections ────────────────────────────────── */
+.form-section {
+  border: none; padding: 0;
+  margin-bottom: 2.5rem;
+}
+.form-section--consent { margin-bottom: 1.5rem; }
+.form-grid { display: grid; gap: 1.5rem; }
+.form-grid--2 { grid-template-columns: 1fr 1fr; }
+.form-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+
+@media (max-width: 560px) {
+  .form-grid--2 { grid-template-columns: 1fr; }
+  .form-grid--3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 380px) {
+  .form-grid--3 { grid-template-columns: 1fr; }
+}
+
+/* ── Fields ───────────────────────────────────────── */
+.field-group { display: flex; flex-direction: column; gap: 0.625rem; }
+.field-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #000;
+}
+.field-label-opt {
+  font-weight: 400; color: #999;
+  letter-spacing: 0.05em; font-size: 0.6rem;
+}
+.field-input {
   background: transparent;
   border: none;
-  border-bottom: 2px solid #000; /* Solid 2px black line */
-  padding: 1rem 0;
-  font-size: 1rem;
-  color: black;
-  transition: all 0.3s;
+  border-bottom: 2px solid #000;
+  padding: 0.875rem 0;
+  font-size: 0.9375rem;
+  color: #000;
+  font-family: inherit;
   outline: none;
   border-radius: 0;
+  transition: border-bottom-color 0.2s, background 0.2s;
+  width: 100%;
+}
+.field-input::placeholder { color: #999; font-size: 0.875rem; }
+.field-input:focus {
+  border-bottom-color: #000;
+  background: rgba(0,0,0,0.015);
+}
+.field-textarea { min-height: 80px; resize: vertical; border-bottom: 2px solid #000; padding-top: 0.875rem; }
+.field-hint { font-size: 0.65rem; color: #aaa; margin: 0; }
+.field-error { font-size: 0.7rem; color: #d90429; margin-top: 0.5rem; font-weight: 600; }
+
+/* ── Pax stepper ──────────────────────────────────── */
+.pax-stepper {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 2px solid #000;
+  padding: 0.5rem 0;
+}
+.pax-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: #000; color: #fff; border: none;
+  font-size: 1.25rem; font-weight: 300;
+  cursor: pointer; border-radius: 2px;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.pax-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.pax-btn:hover:not(:disabled) { opacity: 0.75; }
+.pax-count {
+  flex: 1; text-align: center;
+  font-size: 1.125rem; font-weight: 700;
 }
 
-/* Darken Placeholders - Critical for visibility */
-.editorial-input::placeholder {
-  color: #666; 
-  opacity: 1;
-  font-weight: 400;
+/* ── Time slots ───────────────────────────────────── */
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.875rem;
 }
-
-.editorial-input:focus {
-  border-bottom-color: black;
-  background: rgba(0,0,0,0.02);
-}
-
 .time-slot {
-    border: 1.5px solid #000; /* Solid black borders */
-    padding: 1.25rem 0;
-    font-size: 0.85rem;
-    font-family: 'Work Sans', sans-serif;
-    letter-spacing: 0.1em;
-    transition: all 0.25s;
-    background: white;
-    color: #000;
-    font-weight: 600;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0.2rem;
+  padding: 0.875rem 0.5rem;
+  border: 1.5px solid #000;
+  background: #fff; color: #000;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, opacity 0.18s;
+  position: relative;
+}
+.time-slot:hover:not(:disabled) { background: #000; color: #fff; }
+.time-slot--selected { background: #000; color: #fff; border-color: #000; }
+.time-slot--full {
+  border-color: #e0e0e0; color: #ccc;
+  cursor: not-allowed; opacity: 0.55;
+}
+.time-slot--limited { border-color: #f59e0b; color: #000; }
+.time-slot--limited:hover:not(:disabled) { background: #f59e0b; color: #000; border-color: #f59e0b; }
+.time-slot--limited.time-slot--selected { background: #f59e0b; color: #000; border-color: #f59e0b; }
+.slot-time { font-size: 0.875rem; font-weight: 700; letter-spacing: 0.05em; }
+.slot-tag { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.8; }
+
+/* Skeleton loading slots */
+.slots-loading {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.5rem; margin-top: 0.875rem;
+}
+.slots-skeleton {
+  height: 56px; border-radius: 2px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.slots-hint, .slots-empty {
+  margin-top: 0.875rem;
+  font-size: 0.75rem; color: #999;
+  font-style: italic;
+}
+.slots-empty { color: #d90429; }
+
+/* ── Consent ──────────────────────────────────────── */
+.consent-label {
+  display: flex; gap: 0.875rem; align-items: flex-start; cursor: pointer;
+}
+.consent-checkbox {
+  width: 18px; height: 18px; margin-top: 2px;
+  accent-color: #000; cursor: pointer; flex-shrink: 0;
+}
+.consent-text {
+  font-size: 0.7rem; color: #555; line-height: 1.7;
+}
+.consent-hint {
+  display: block; font-size: 0.65rem; color: #999; margin-top: 0.25rem;
 }
 
-.time-slot:hover {
-    background: #000;
-    color: #fff;
+/* ── Submit ───────────────────────────────────────── */
+.form-submit-area { padding-top: 0.5rem; }
+.submit-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.625rem;
+  width: 100%;
+  background: #000; color: #fff;
+  padding: 1.5rem 2rem;
+  font-family: inherit;
+  font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  border: none; cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.submit-btn:hover:not(:disabled) {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+.submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.submit-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.form-legal {
+  font-size: 0.6rem; color: #aaa;
+  text-align: center; margin-top: 1.25rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  line-height: 1.8;
+}
+.legal-link { color: #000; font-weight: 700; text-decoration: underline; }
+
+/* ── Alerts ───────────────────────────────────────── */
+.form-error-banner {
+  background: #fff5f5; color: #991b1b;
+  border: 1.5px solid #fca5a5;
+  padding: 1rem 1.25rem;
+  font-size: 0.8rem; font-weight: 600;
+  margin-bottom: 2rem; border-radius: 4px;
 }
 
-.time-slot.active {
-    background: black;
-    color: white;
-    border-color: black;
+/* ── Success screen ───────────────────────────────── */
+.success-screen {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #000; color: #fff;
+  margin-bottom: 2rem;
+  animation: fadeInUp 0.4s ease both;
 }
-
-.editorial-btn {
-    width: 100%;
-    background: black;
-    color: white;
-    padding: 1.75rem 0;
-    text-transform: uppercase;
-    letter-spacing: 0.4em;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.3s;
-    border: none;
-    cursor: pointer;
-    margin-top: 1rem;
+.success-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%; margin-bottom: 1.25rem;
 }
-
-.editorial-btn:hover:not(:disabled) {
-    background: #222;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+.success-title {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: 1.5rem; font-weight: 300;
+  margin: 0 0 0.5rem;
 }
-
-.editorial-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.success-sub {
+  font-size: 0.65rem; opacity: 0.6;
+  text-transform: uppercase; letter-spacing: 0.2em; margin: 0;
 }
-
-.success-alert {
-    background: black;
-    color: white;
-    padding: 4rem 2rem;
-    text-align: center;
-    margin-bottom: 3rem;
-    animation: fadeIn 0.5s ease-out;
-}
-
-.error-alert {
-    background: #fef2f2;
-    color: #991b1b;
-    border: 2px solid #991b1b;
-    padding: 1.5rem;
-    font-size: 0.9rem;
-    margin-bottom: 3rem;
-    text-align: center;
-    font-weight: 600;
-}
-
-.terms-text {
-    font-size: 0.65rem;
-    color: #444; /* Darker footer text */
-    text-align: center;
-    margin-top: 2.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    line-height: 1.8;
-    font-weight: 600;
-}
-
-.terms-text a {
-  color: #000;
-  font-weight: 800;
-}
-
-.select-input {
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23777777%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.5rem top 50%;
-    background-size: .65em auto;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
 }
 </style>
