@@ -187,17 +187,56 @@ const props = defineProps({
 const resolvedId     = ref(props.restaurantId);
 const restaurantName = ref('');
 
+// ─── Default schedule config (overridden by Firestore per restaurant) ────────
+const DEFAULT_HORARIOS = {
+  comida:   { inicio: '13:00', fin: '17:00' },
+  cena:     { inicio: '20:00', fin: '00:00' },
+  intervalo: 30,
+};
+const restaurantConfig = ref({ ...DEFAULT_HORARIOS });
+
+/** Generate HH:MM slots from inicio to fin (exclusive) at `intervalo` minutes */
+const generateSlots = (inicio, fin, intervalo) => {
+  const slots = [];
+  let cur = timeToMinutes(inicio);
+  const end = fin === '00:00' ? 1440 : timeToMinutes(fin);
+  while (cur < end) {
+    slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
+    cur += intervalo;
+  }
+  return slots;
+};
+
+/** All raw time slots derived from restaurant's schedule config */
+const computedHoras = computed(() => {
+  const cfg = restaurantConfig.value;
+  return [
+    ...generateSlots(cfg.comida.inicio, cfg.comida.fin, cfg.intervalo),
+    ...generateSlots(cfg.cena.inicio,   cfg.cena.fin,   cfg.intervalo),
+  ];
+});
+
 onMounted(async () => {
   // Read ?id= from URL — works at runtime even in SSG builds
   const urlId = new URLSearchParams(window.location.search).get('id');
   if (urlId) resolvedId.value = urlId;
 
-  // Load restaurant branding name from Firestore
+  // Load restaurant branding name + horarios config from Firestore
   try {
     const snap = await getDoc(doc(db, 'restaurants', resolvedId.value));
-    restaurantName.value = snap.exists()
-      ? snap.data().nombre
-      : resolvedId.value.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+    if (snap.exists()) {
+      const data = snap.data();
+      restaurantName.value = data.nombre || '';
+      if (data.horarios) {
+        restaurantConfig.value = {
+          comida:    data.horarios.comida   ?? DEFAULT_HORARIOS.comida,
+          cena:      data.horarios.cena     ?? DEFAULT_HORARIOS.cena,
+          intervalo: data.horarios.intervalo ?? DEFAULT_HORARIOS.intervalo,
+        };
+      }
+    } else {
+      restaurantName.value = resolvedId.value.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+    }
   } catch {
     restaurantName.value = '';
   }
@@ -238,34 +277,48 @@ const incrementPax = () => {
 };
 const selectHora = (hora) => { form.value.hora = hora; showHoraError.value = false; };
 
-// ─── Raw time slots (lunch + dinner) ─────────────────
-const RAW_HORAS = [
-  '13:30', '14:00', '14:30', '15:00', '15:30',
-  '20:30', '21:00', '21:30', '22:00', '22:30',
-];
-
 // ─── Computed slots with real availability ────────────
+// Slots are generated from per-restaurant schedule config (loaded in onMounted).
 // Uses shared reservationUtils algorithm:
 //   - turn time by party size (60-120 min)
 //   - 15-min buffer between seatings
 //   - blocks 'confirmada' AND 'pendiente' bookings
+// When restaurant has no mesas configured, all slots are available (booking → pendiente).
 const computedSlots = computed(() => {
+  const horas = computedHoras.value;
+
   if (!form.value.fecha) {
-    return RAW_HORAS.map(hora => ({ hora, available: true, remaining: 99 }));
+    return horas.map(hora => ({ hora, available: true, remaining: 99 }));
   }
 
-  // If tables not yet loaded, show as loading (remaining = -1)
-  if (mesas.value.length === 0) {
-    return RAW_HORAS.map(hora => ({ hora, available: false, remaining: 0 }));
+  // Still loading data — keep skeleton UI (loadingSlots handles the template branch)
+  if (loadingSlots.value) {
+    return horas.map(hora => ({ hora, available: true, remaining: 99 }));
   }
 
   const now          = new Date();
   const selectedDate = new Date(form.value.fecha + 'T00:00:00');
   const isToday      = selectedDate.toDateString() === now.toDateString();
   const pax          = form.value.comensales;
+
+  // No mesas configured → accept bookings as pendiente, show all available
+  if (mesas.value.length === 0) {
+    return horas.map(hora => {
+      if (isToday) {
+        const [h, m] = hora.split(':').map(Number);
+        const slotTime = new Date();
+        slotTime.setHours(h, m, 0, 0);
+        if (slotTime.getTime() <= now.getTime() + 60 * 60_000) {
+          return { hora, available: false, remaining: 0 };
+        }
+      }
+      return { hora, available: true, remaining: 99 };
+    });
+  }
+
   const tablesForPax = mesas.value.filter(m => m.pax_max >= pax);
 
-  return RAW_HORAS.map(hora => {
+  return horas.map(hora => {
     // Block past hours on today (need ≥ 60 min lead time)
     if (isToday) {
       const [h, m] = hora.split(':').map(Number);

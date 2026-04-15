@@ -467,6 +467,53 @@
             </div>
           </div>
 
+          <!-- CENTER: Configuración de horarios -->
+          <div class="profile-section">
+            <h4 class="profile-section-title">Horarios de reservas</h4>
+            <div class="profile-form">
+              <p class="horarios-hint">Define los turnos disponibles y el intervalo entre franjas. BookingForm lo usará automáticamente.</p>
+              <div class="horarios-block">
+                <span class="horarios-label">Comida</span>
+                <div class="field-row" style="gap:0.75rem; align-items:flex-end">
+                  <div class="field">
+                    <label>Inicio</label>
+                    <input v-model="profileForm.horarios.comida.inicio" type="time" class="field-input-sm">
+                  </div>
+                  <div class="field">
+                    <label>Fin</label>
+                    <input v-model="profileForm.horarios.comida.fin" type="time" class="field-input-sm">
+                  </div>
+                </div>
+              </div>
+              <div class="horarios-block">
+                <span class="horarios-label">Cena</span>
+                <div class="field-row" style="gap:0.75rem; align-items:flex-end">
+                  <div class="field">
+                    <label>Inicio</label>
+                    <input v-model="profileForm.horarios.cena.inicio" type="time" class="field-input-sm">
+                  </div>
+                  <div class="field">
+                    <label>Fin</label>
+                    <input v-model="profileForm.horarios.cena.fin" type="time" class="field-input-sm">
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label>Intervalo entre franjas</label>
+                <select v-model.number="profileForm.horarios.intervalo" class="field-select">
+                  <option :value="15">15 minutos</option>
+                  <option :value="30">30 minutos</option>
+                  <option :value="60">60 minutos (cada hora)</option>
+                </select>
+              </div>
+              <button @click="saveProfile" :disabled="profileSaving" class="btn-primary-sm" style="margin-top:0.5rem; align-self:flex-start">
+                <span v-if="profileSaving">Guardando…</span>
+                <span v-else>Guardar horarios</span>
+              </button>
+              <p v-if="profileSaved" class="profile-saved-msg">✓ Guardado</p>
+            </div>
+          </div>
+
           <!-- RIGHT: URLs + Accesos -->
           <div class="profile-section">
 
@@ -1122,8 +1169,15 @@ const execDelete = async () => {
 };
 
 // ─── Restaurant profile actions ───────────────────────
+const DEFAULT_HORARIOS = {
+  comida:    { inicio: '13:00', fin: '17:00' },
+  cena:      { inicio: '20:00', fin: '00:00' },
+  intervalo: 30,
+};
+
 const openProfile = async (restaurant) => {
   profileRestaurant.value = restaurant;
+  const h = restaurant.horarios ?? {};
   profileForm.value = {
     nombre:    restaurant.nombre    || '',
     direccion: restaurant.direccion || '',
@@ -1132,6 +1186,11 @@ const openProfile = async (restaurant) => {
     web:       restaurant.web       || '',
     plan:      restaurant.plan      || 'basic',
     activo:    restaurant.activo    !== false,
+    horarios: {
+      comida:    { inicio: h.comida?.inicio ?? '13:00', fin: h.comida?.fin ?? '17:00' },
+      cena:      { inicio: h.cena?.inicio   ?? '20:00', fin: h.cena?.fin   ?? '00:00' },
+      intervalo: h.intervalo ?? 30,
+    },
   };
   profileSaved.value = false;
   currentView.value  = 'restaurant-profile';
@@ -1149,6 +1208,7 @@ const saveProfile = async () => {
       web:       profileForm.value.web       || '',
       plan:      profileForm.value.plan      || 'basic',
       activo:    profileForm.value.activo    !== false,
+      horarios:  profileForm.value.horarios  ?? DEFAULT_HORARIOS,
     });
     profileRestaurant.value = { ...profileRestaurant.value, ...profileForm.value };
     profileSaved.value = true;
@@ -1885,13 +1945,18 @@ const closeAddUserModal = () => {
 
 /* ── Restaurant profile ──────────────────────────── */
 .profile-id { font-family: monospace; font-size: 0.8em; background: #f0f0f0; padding: 0.15em 0.4em; border-radius: 3px; }
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
-@media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; align-items: start; }
+@media (max-width: 1100px) { .profile-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px)  { .profile-grid { grid-template-columns: 1fr; } }
 .profile-section { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 1.25rem; }
 .profile-section-title { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 1rem; display: flex; align-items: center; justify-content: space-between; }
 .profile-form { display: flex; flex-direction: column; gap: 0.875rem; }
 .profile-saved-msg { font-size: 0.7rem; color: #22c55e; font-weight: 700; margin: 0; }
 .profile-loading { font-size: 0.75rem; color: #999; padding: 0.75rem 0; }
+.horarios-hint { font-size: 0.65rem; color: #888; margin: 0; line-height: 1.5; }
+.horarios-block { display: flex; flex-direction: column; gap: 0.4rem; }
+.horarios-label { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #000; }
+.field-input-sm { border: 1px solid #ddd; border-radius: 4px; padding: 0.4rem 0.5rem; font-size: 0.8rem; font-family: inherit; width: 100%; }
 .profile-empty-users { font-size: 0.75rem; color: #aaa; font-style: italic; padding: 0.5rem 0; }
 /* URL list */
 .url-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem; }
