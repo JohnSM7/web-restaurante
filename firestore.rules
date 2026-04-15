@@ -22,8 +22,12 @@ service cloud.firestore {
     }
 
     match /reservas/{reservaId} {
+      // Anyone can create a reservation (public booking form)
       allow create: if request.resource.data.restaurant_id != null;
-      allow read, update, delete: if isRestaurantOwner(resource.data.restaurant_id);
+      // Any authenticated user (incl. anonymous) can read — needed for slot availability checks
+      // Restaurant owners can also update/delete (e.g. cancel a booking)
+      allow read: if request.auth != null;
+      allow update, delete: if isRestaurantOwner(resource.data.restaurant_id);
     }
     
     match /mesas/{mesaId} {

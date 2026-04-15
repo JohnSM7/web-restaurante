@@ -185,7 +185,8 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { collection, addDoc, getDocs, getDoc, doc, query, where, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase.ts';
+import { signInAnonymously } from 'firebase/auth';
+import { db, auth } from '../lib/firebase.ts';
 import {
   getTurnTime, BUFFER_MIN, timeToMinutes,
   findBestTable, countAvailableTables,
@@ -232,6 +233,9 @@ const computedHoras = computed(() => {
 });
 
 onMounted(async () => {
+  // Anonymous sign-in so Firestore auth rules allow reading reservas for availability
+  await signInAnonymously(auth).catch(() => {});
+
   // Read ?id= from URL — works at runtime even in SSG builds
   const urlId = new URLSearchParams(window.location.search).get('id');
   if (urlId) resolvedId.value = urlId;
@@ -364,17 +368,25 @@ const loadRoomData = async () => {
   if (!form.value.fecha) return;
   loadingSlots.value = true;
   try {
-    const [mesasSnap, resSnap] = await Promise.all([
-      getDocs(query(collection(db, 'mesas'), where('restaurant_id', '==', resolvedId.value))),
-      getDocs(query(
+    // Mesas: public read (allow read: if true in rules)
+    const mesasSnap = await getDocs(
+      query(collection(db, 'mesas'), where('restaurant_id', '==', resolvedId.value))
+    );
+    mesas.value = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Reservas: requires auth — anonymous sign-in covers this; graceful fallback if it fails
+    try {
+      const resSnap = await getDocs(query(
         collection(db, 'reservas'),
         where('restaurant_id', '==', resolvedId.value),
         where('fecha', '>=', new Date(form.value.fecha + 'T00:00:00')),
         where('fecha', '<=', new Date(form.value.fecha + 'T23:59:59')),
-      )),
-    ]);
-    mesas.value          = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    occupancyToday.value = resSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      ));
+      occupancyToday.value = resSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.warn('[BookingForm] Could not load occupancy (slots shown as available):', err.code);
+      occupancyToday.value = [];
+    }
   } catch (err) {
     console.error('[BookingForm] loadRoomData error:', err);
   } finally {
