@@ -21,18 +21,20 @@
       </p>
     </div>
 
-    <header v-if="!bookingResult" class="booking-header">
-      <p class="booking-eyebrow">Reservation</p>
-      <h1 class="booking-title">
-        Mesa para <em>{{ paxTitle }}?</em>
-      </h1>
-      <p class="booking-subtitle">
-        Únete a nosotros para una experiencia culinaria mediterránea
-        inolvidable. Cada detalle está cuidado para deleitar tus sentidos.
-      </p>
-    </header>
+    <template v-else>
 
-    <form v-else @submit.prevent="submitBooking" novalidate>
+      <header class="booking-header">
+        <p class="booking-eyebrow">Reservation</p>
+        <h1 class="booking-title">
+          Mesa para <em>{{ paxTitle }}?</em>
+        </h1>
+        <p class="booking-subtitle">
+          Únete a nosotros para una experiencia culinaria mediterránea
+          inolvidable. Cada detalle está cuidado para deleitar tus sentidos.
+        </p>
+      </header>
+
+      <form @submit.prevent="submitBooking" novalidate>
 
       <!-- Global error -->
       <div v-if="errorMsg" class="form-error-banner" role="alert">
@@ -175,6 +177,8 @@
       </div>
 
     </form>
+
+    </template>
   </div>
 </template>
 
