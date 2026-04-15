@@ -142,9 +142,10 @@
 
         <!-- Filters -->
         <div class="filters-bar">
-          <div class="filter-group">
-            <label class="filter-label">Fecha</label>
-            <input type="date" v-model="filterDate" class="filter-input">
+          <div class="filter-group" style="flex-direction:row; align-items:center; gap:0.375rem;">
+            <input type="date" v-model="filterDate" class="filter-input" style="width:auto">
+            <button @click="setToday" :class="['quick-date-btn', filterDate === today && 'quick-date-btn--active']">Hoy</button>
+            <button v-if="filterDate" @click="filterDate = ''" class="quick-date-btn" title="Ver todas las fechas">✕ Todas</button>
           </div>
           <div class="tab-group">
             <button v-for="tab in statusTabs" :key="tab.value"
@@ -153,9 +154,12 @@
               {{ tab.label }}
             </button>
           </div>
-          <div class="filter-group filter-search-wrap">
+          <div class="filter-group filter-search-wrap" style="flex-direction:row; align-items:center; gap:0.375rem;">
             <input v-model="searchQuery" type="search"
               placeholder="Buscar nombre, email o teléfono…" class="filter-input filter-search">
+            <button @click="refreshData" :disabled="refreshing" class="refresh-btn" title="Recargar reservas">
+              <span :class="refreshing ? 'spin-icon' : ''">↻</span>
+            </button>
           </div>
         </div>
 
@@ -774,10 +778,12 @@ const copiedUrl         = ref('');
 const addUserModal      = ref({ show: false, email: '', role: 'admin', saving: false, result: null });
 
 // ─── Filters ─────────────────────────────────────────
-const filterDate    = ref(new Date().toISOString().split('T')[0]);
+const filterDate    = ref('');   // empty = todas las fechas
 const filterStatus  = ref('todas');
 const searchQuery   = ref('');
 const customerSearch = ref('');
+const today         = new Date().toISOString().split('T')[0];
+const setToday      = () => { filterDate.value = filterDate.value === today ? '' : today; };
 
 // ─── Inline notes ────────────────────────────────────
 const notasEdit = ref({});
@@ -934,6 +940,26 @@ const getMesaNombre = (mesaId) =>
 const autoGrow = (e) => {
   e.target.style.height = 'auto';
   e.target.style.height = e.target.scrollHeight + 'px';
+};
+
+// ─── Manual refresh (fallback when real-time listener is blocked) ─────────────
+const refreshing = ref(false);
+const refreshData = async () => {
+  const rid = selectedRestaurantId.value;
+  if (!rid) return;
+  refreshing.value = true;
+  try {
+    const [resSnap, mesasSnap] = await Promise.all([
+      getDocs(query(collection(db, 'reservas'), where('restaurant_id', '==', rid), orderBy('creado_en', 'desc'))),
+      getDocs(query(collection(db, 'mesas'), where('restaurant_id', '==', rid))),
+    ]);
+    reservas.value = resSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    mesas.value    = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.error('[AdminTable] refreshData error:', err);
+  } finally {
+    refreshing.value = false;
+  }
 };
 
 // ─── Data sync (real-time) ────────────────────────────
@@ -1571,8 +1597,25 @@ const closeAddUserModal = () => {
   background: #fff; transition: border-color 0.2s;
 }
 .filter-input:focus { border-color: #000; }
-.filter-search { min-width: 240px; }
+.filter-search { min-width: 200px; }
 .filter-search-wrap { flex: 1; min-width: 180px; }
+.quick-date-btn {
+  padding: 0.375rem 0.625rem; border: 1.5px solid #ddd; border-radius: 4px;
+  background: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.quick-date-btn:hover { border-color: #000; }
+.quick-date-btn--active { background: #000; color: #fff; border-color: #000; }
+.refresh-btn {
+  width: 32px; height: 32px; border: 1.5px solid #ddd; border-radius: 4px;
+  background: #fff; font-size: 1rem; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.refresh-btn:hover:not(:disabled) { border-color: #000; }
+.refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.spin-icon { display: inline-block; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .tab-group { display: flex; flex-wrap: wrap; gap: 0.375rem; align-self: flex-end; }
 .tab-pill {
   padding: 0.375rem 0.875rem;
