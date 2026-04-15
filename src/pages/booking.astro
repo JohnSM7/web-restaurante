@@ -41,7 +41,7 @@ const restaurantId = Astro.url.searchParams.get('id') || 'the-editorial';
           </p>
         </header>
 
-        <BookingForm client:visible restaurantId={restaurantId} />
+        <BookingForm client:only="vue" restaurantId={restaurantId} />
 
       </div>
     </div>

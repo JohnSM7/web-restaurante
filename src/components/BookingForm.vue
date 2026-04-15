@@ -143,7 +143,7 @@
             id="marketing" class="consent-checkbox">
           <span class="consent-text">
             Deseo recibir novedades, promociones e invitaciones exclusivas de
-            <strong>THE EDITORIAL</strong>.
+            <strong>{{ restaurantName || 'este restaurante' }}</strong>.
             <span class="consent-hint">Puedes darte de baja en cualquier momento.</span>
           </span>
         </label>
@@ -168,8 +168,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { collection, addDoc, getDocs, getDoc, doc, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase.ts';
 import {
   getTurnTime, BUFFER_MIN, timeToMinutes,
@@ -178,6 +178,29 @@ import {
 
 const props = defineProps({
   restaurantId: { type: String, default: 'the-editorial' }
+});
+
+// ─── Multi-tenant: resolve restaurant from URL param at runtime ───────────────
+// SSG pre-renders with the default prop, but at runtime the URL ?id= overrides it.
+// URL format: /booking?id=restaurante-abc  or  /booking-widget?id=restaurante-abc
+// Start with the prop value; overridden at runtime by ?id= URL param
+const resolvedId     = ref(props.restaurantId);
+const restaurantName = ref('');
+
+onMounted(async () => {
+  // Read ?id= from URL — works at runtime even in SSG builds
+  const urlId = new URLSearchParams(window.location.search).get('id');
+  if (urlId) resolvedId.value = urlId;
+
+  // Load restaurant branding name from Firestore
+  try {
+    const snap = await getDoc(doc(db, 'restaurants', resolvedId.value));
+    restaurantName.value = snap.exists()
+      ? snap.data().nombre
+      : resolvedId.value.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  } catch {
+    restaurantName.value = '';
+  }
 });
 
 // ─── State ───────────────────────────────────────────
@@ -266,10 +289,10 @@ const loadRoomData = async () => {
   loadingSlots.value = true;
   try {
     const [mesasSnap, resSnap] = await Promise.all([
-      getDocs(query(collection(db, 'mesas'), where('restaurant_id', '==', props.restaurantId))),
+      getDocs(query(collection(db, 'mesas'), where('restaurant_id', '==', resolvedId.value))),
       getDocs(query(
         collection(db, 'reservas'),
-        where('restaurant_id', '==', props.restaurantId),
+        where('restaurant_id', '==', resolvedId.value),
         where('fecha', '>=', new Date(form.value.fecha + 'T00:00:00')),
         where('fecha', '<=', new Date(form.value.fecha + 'T23:59:59')),
       )),
@@ -312,7 +335,7 @@ const submitBooking = async () => {
     const bestTable = findBestTable(mesas.value, pax, form.value.hora, occupancyToday.value);
 
     await addDoc(collection(db, 'reservas'), {
-      restaurant_id:     props.restaurantId,
+      restaurant_id:     resolvedId.value,
       nombre_cliente:    form.value.nombre_cliente,
       email:             form.value.email,
       telefono:          form.value.telefono,
