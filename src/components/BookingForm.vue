@@ -21,6 +21,17 @@
       </p>
     </div>
 
+    <header v-if="!bookingResult" class="booking-header">
+      <p class="booking-eyebrow">Reservation</p>
+      <h1 class="booking-title">
+        Mesa para <em>{{ paxTitle }}?</em>
+      </h1>
+      <p class="booking-subtitle">
+        Únete a nosotros para una experiencia culinaria mediterránea
+        inolvidable. Cada detalle está cuidado para deleitar tus sentidos.
+      </p>
+    </header>
+
     <form v-else @submit.prevent="submitBooking" novalidate>
 
       <!-- Global error -->
@@ -268,6 +279,14 @@ const form = ref({
 // ─── Date constraints ─────────────────────────────────
 const minDate = computed(() => new Date().toISOString().split('T')[0]);
 
+// ─── Dynamic heading title ────────────────────────────
+const PAX_WORDS = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis',
+  'siete', 'ocho', 'nueve', 'diez', 'once', 'doce'];
+const paxTitle = computed(() => {
+  const n = form.value.comensales;
+  return n <= 12 ? PAX_WORDS[n] : String(n);
+});
+
 // ─── Pax stepper ──────────────────────────────────────
 const decrementPax = () => {
   if (form.value.comensales > 1) { form.value.comensales--; form.value.hora = ''; }
@@ -436,6 +455,31 @@ const submitBooking = async () => {
   font-family: 'Work Sans', system-ui, sans-serif;
   max-width: 600px;
   width: 100%;
+}
+
+/* ── Header ────────────────────────────────── */
+.booking-header { margin-bottom: 3rem; }
+.booking-eyebrow {
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--outline, #555); margin: 0 0 1rem;
+}
+.booking-title {
+  font-family: 'Noto Serif', Georgia, serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 300; line-height: 1.1;
+  margin: 0 0 1.25rem; color: var(--on-surface, #000);
+  transition: opacity 0.2s;
+}
+.booking-title em {
+  font-style: italic;
+  color: var(--outline-variant, #b0b0b0);
+}
+.booking-subtitle {
+  font-size: 0.75rem; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--on-surface-variant, #555);
+  line-height: 1.8; margin: 0;
 }
 
 /* ── Form sections ────────────────────────────────── */
