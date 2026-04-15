@@ -53,6 +53,9 @@
       <nav class="sidebar-nav">
         <!-- Superadmin: gestión SaaS -->
         <template v-if="isSuperAdmin">
+          <button v-if="currentView === 'restaurant-profile'" @click="nav('saas-clients')" class="nav-btn nav-btn--back">
+            ← CLIENTES SAAS
+          </button>
           <button @click="nav('saas-clients')"
             :class="['nav-btn', currentView === 'saas-clients' && 'nav-btn--active']">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
@@ -399,15 +402,138 @@
               </p>
             </div>
             <div class="saas-card-footer">
-              <button @click="selectAndGo(res.id)" class="btn-manage">
-                Gestionar →
-              </button>
+              <button @click="openProfile(res)" class="btn-manage">Ver perfil →</button>
               <button @click="openDeleteModal(res.id, res.nombre)" class="btn-delete">
                 Dar de baja
               </button>
             </div>
           </article>
         </div>
+      </section>
+
+      <!-- ── VIEW: RESTAURANT PROFILE ── -->
+      <section v-else-if="currentView === 'restaurant-profile' && profileRestaurant" class="view-section">
+
+        <!-- Header with restaurant name and quick actions -->
+        <div class="view-header">
+          <div>
+            <h3 class="view-heading">{{ profileRestaurant.nombre }}</h3>
+            <p class="view-sub">ID: <code class="profile-id">{{ profileRestaurant.id }}</code></p>
+          </div>
+          <div style="display:flex; gap:0.5rem">
+            <button @click="selectAndGo(profileRestaurant.id)" class="btn-outline-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+              VER RESERVAS
+            </button>
+          </div>
+        </div>
+
+        <div class="profile-grid">
+
+          <!-- LEFT: Datos del restaurante (editable) -->
+          <div class="profile-section">
+            <h4 class="profile-section-title">Datos del restaurante</h4>
+            <div class="profile-form">
+              <div class="field"><label>Nombre</label><input v-model="profileForm.nombre" type="text" placeholder="Nombre del restaurante"></div>
+              <div class="field"><label>Dirección</label><input v-model="profileForm.direccion" type="text" placeholder="Calle, número, ciudad"></div>
+              <div class="field-row">
+                <div class="field"><label>Teléfono</label><input v-model="profileForm.telefono" type="tel" placeholder="+34 600 000 000"></div>
+                <div class="field"><label>Email contacto</label><input v-model="profileForm.email" type="email" placeholder="info@restaurante.com"></div>
+              </div>
+              <div class="field"><label>Sitio web</label><input v-model="profileForm.web" type="url" placeholder="https://restaurante.com"></div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Plan</label>
+                  <select v-model="profileForm.plan" class="field-select">
+                    <option value="trial">Trial (gratis)</option>
+                    <option value="basic">Basic</option>
+                    <option value="pro">Pro</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Estado</label>
+                  <label class="toggle-label">
+                    <input type="checkbox" v-model="profileForm.activo" class="toggle-input">
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-text">{{ profileForm.activo ? 'Activo' : 'Inactivo' }}</span>
+                  </label>
+                </div>
+              </div>
+              <button @click="saveProfile" :disabled="profileSaving" class="btn-primary-sm" style="margin-top:0.5rem; align-self:flex-start">
+                <span v-if="profileSaving">Guardando…</span>
+                <span v-else>Guardar cambios</span>
+              </button>
+              <p v-if="profileSaved" class="profile-saved-msg">✓ Guardado</p>
+            </div>
+          </div>
+
+          <!-- RIGHT: URLs + Accesos -->
+          <div class="profile-section">
+
+            <!-- URLs del sistema -->
+            <h4 class="profile-section-title">URLs del sistema</h4>
+            <div class="url-list">
+              <div class="url-item">
+                <div class="url-info">
+                  <span class="url-label">Formulario de reservas</span>
+                  <span class="url-value">/booking?id={{ profileRestaurant.id }}</span>
+                </div>
+                <button @click="copyUrl('booking', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'booking' }">
+                  {{ copiedUrl === 'booking' ? '✓' : 'Copiar' }}
+                </button>
+              </div>
+              <div class="url-item">
+                <div class="url-info">
+                  <span class="url-label">Widget embebible</span>
+                  <span class="url-value">/booking-widget?id={{ profileRestaurant.id }}</span>
+                </div>
+                <button @click="copyUrl('widget', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'widget' }">
+                  {{ copiedUrl === 'widget' ? '✓' : 'Copiar' }}
+                </button>
+              </div>
+              <div class="url-item">
+                <div class="url-info">
+                  <span class="url-label">Panel admin restaurante</span>
+                  <span class="url-value">/admin/dashboard?id={{ profileRestaurant.id }}</span>
+                </div>
+                <button @click="copyUrl('admin', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'admin' }">
+                  {{ copiedUrl === 'admin' ? '✓' : 'Copiar' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Accesos y usuarios -->
+            <h4 class="profile-section-title" style="margin-top:1.5rem">
+              Accesos y usuarios
+              <button @click="addUserModal.show = true" class="add-user-btn">+ Añadir acceso</button>
+            </h4>
+
+            <div v-if="loadingUsers" class="profile-loading">Cargando usuarios…</div>
+            <div v-else-if="restaurantUsers.length === 0" class="profile-empty-users">
+              Sin usuarios asignados. Añade el primer acceso.
+            </div>
+            <div v-else class="users-list">
+              <div v-for="u in restaurantUsers" :key="u.uid" class="user-row">
+                <div class="user-info">
+                  <span class="user-email">{{ u.email }}</span>
+                  <span :class="['user-role-badge', `user-role-badge--${u.role}`]">{{ u.role }}</span>
+                </div>
+                <button @click="revokeAccess(u)" class="revoke-btn" title="Revocar acceso">✕</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="danger-zone">
+          <h4 class="danger-title">Zona de peligro</h4>
+          <p class="danger-desc">Dar de baja eliminará el perfil del restaurante de la plataforma. Las reservas existentes NO se borrarán.</p>
+          <button @click="openDeleteModal(profileRestaurant.id, profileRestaurant.nombre)" class="btn-danger-sm">
+            Dar de baja {{ profileRestaurant.nombre }}
+          </button>
+        </div>
+
       </section>
 
       <!-- Empty / fallback -->
@@ -472,6 +598,63 @@
     </div>
   </Teleport>
 
+  <!-- ══ MODAL: Añadir acceso ══ -->
+  <Teleport to="body">
+    <div v-if="addUserModal.show" class="modal-backdrop" @click.self="closeAddUserModal" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <h3 class="modal-title">Añadir acceso</h3>
+        <p class="modal-desc">Crea una cuenta para que el restaurante gestione sus propias reservas.</p>
+
+        <!-- Result: success -->
+        <div v-if="addUserModal.result?.success" class="add-user-success">
+          <p class="add-user-success-title">✓ Cuenta creada</p>
+          <p class="add-user-success-desc">Comparte estas credenciales con el cliente:</p>
+          <div class="credentials-box">
+            <p><strong>Email:</strong> {{ addUserModal.email }}</p>
+            <p><strong>Contraseña temporal:</strong> <code>{{ addUserModal.result.password }}</code></p>
+          </div>
+          <p class="add-user-hint">El usuario debe cambiar la contraseña en su primer acceso.</p>
+          <div class="modal-footer">
+            <button @click="closeAddUserModal" class="btn-primary-sm">Cerrar</button>
+          </div>
+        </div>
+
+        <!-- Result: error -->
+        <div v-else-if="addUserModal.result?.success === false" class="add-user-error">
+          {{ addUserModal.result.message }}
+          <div class="modal-footer" style="margin-top:1rem">
+            <button @click="addUserModal.result = null" class="btn-ghost-sm">Intentar de nuevo</button>
+            <button @click="closeAddUserModal" class="btn-primary-sm">Cerrar</button>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div v-else>
+          <div class="field-row">
+            <div class="field">
+              <label>Email del usuario</label>
+              <input v-model="addUserModal.email" type="email" placeholder="manager@restaurante.com" @keyup.enter="addUser">
+            </div>
+            <div class="field field--narrow">
+              <label>Rol</label>
+              <select v-model="addUserModal.role" class="field-select">
+                <option value="admin">Admin</option>
+                <option value="staff">Staff</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="closeAddUserModal" class="btn-ghost-sm">CANCELAR</button>
+            <button @click="addUser" :disabled="!addUserModal.email.trim() || addUserModal.saving" class="btn-primary-sm">
+              <span v-if="addUserModal.saving">Creando…</span>
+              <span v-else>CREAR ACCESO</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
   <!-- ══ MODAL: Confirmar Borrado ══ -->
   <Teleport to="body">
     <div v-if="deleteModal.show" class="modal-backdrop" @click.self="deleteModal.show = false" role="dialog" aria-modal="true">
@@ -495,7 +678,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import {
   collection, query, where, orderBy,
   onSnapshot, updateDoc, doc, deleteDoc,
-  setDoc, addDoc, getDoc, serverTimestamp
+  setDoc, addDoc, getDoc, getDocs, serverTimestamp
 } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
@@ -533,6 +716,16 @@ const newRestaurantName = ref('');
 const createInputRef    = ref(null);
 const deleteModal       = ref({ show: false, id: '', name: '' });
 
+// ─── Restaurant profile ────────────────────────────
+const profileRestaurant = ref(null);
+const profileForm       = ref({});
+const profileSaving     = ref(false);
+const profileSaved      = ref(false);
+const restaurantUsers   = ref([]);
+const loadingUsers      = ref(false);
+const copiedUrl         = ref('');
+const addUserModal      = ref({ show: false, email: '', role: 'admin', saving: false, result: null });
+
 // ─── Filters ─────────────────────────────────────────
 const filterDate    = ref(new Date().toISOString().split('T')[0]);
 const filterStatus  = ref('todas');
@@ -567,10 +760,11 @@ const currentRestaurantName = computed(() =>
 );
 
 const viewTitle = computed(() => ({
-  'reservas':     currentRestaurantName.value || 'RESERVAS',
-  'customers':    'CRM CLIENTES',
-  'mapa':         'MAPA DE SALA',
-  'saas-clients': 'CLIENTES SAAS',
+  'reservas':            currentRestaurantName.value || 'RESERVAS',
+  'customers':           'CRM CLIENTES',
+  'mapa':                'MAPA DE SALA',
+  'saas-clients':        'CLIENTES SAAS',
+  'restaurant-profile':  profileRestaurant.value?.nombre ?? 'PERFIL',
 }[currentView.value] ?? 'PANEL DE CONTROL'));
 
 const pendingCount = computed(() =>
@@ -925,6 +1119,129 @@ const openDeleteModal = (id, name) => {
 const execDelete = async () => {
   await deleteDoc(doc(db, 'restaurants', deleteModal.value.id));
   deleteModal.value = { show: false, id: '', name: '' };
+};
+
+// ─── Restaurant profile actions ───────────────────────
+const openProfile = async (restaurant) => {
+  profileRestaurant.value = restaurant;
+  profileForm.value = {
+    nombre:    restaurant.nombre    || '',
+    direccion: restaurant.direccion || '',
+    telefono:  restaurant.telefono  || '',
+    email:     restaurant.email     || '',
+    web:       restaurant.web       || '',
+    plan:      restaurant.plan      || 'basic',
+    activo:    restaurant.activo    !== false,
+  };
+  profileSaved.value = false;
+  currentView.value  = 'restaurant-profile';
+  await loadRestaurantUsers(restaurant.id);
+};
+
+const saveProfile = async () => {
+  profileSaving.value = true;
+  try {
+    await updateDoc(doc(db, 'restaurants', profileRestaurant.value.id), {
+      nombre:    profileForm.value.nombre.trim(),
+      direccion: profileForm.value.direccion || '',
+      telefono:  profileForm.value.telefono  || '',
+      email:     profileForm.value.email     || '',
+      web:       profileForm.value.web       || '',
+      plan:      profileForm.value.plan      || 'basic',
+      activo:    profileForm.value.activo    !== false,
+    });
+    profileRestaurant.value = { ...profileRestaurant.value, ...profileForm.value };
+    profileSaved.value = true;
+    setTimeout(() => { profileSaved.value = false; }, 2500);
+  } finally {
+    profileSaving.value = false;
+  }
+};
+
+const loadRestaurantUsers = async (rid) => {
+  loadingUsers.value = true;
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'users'), where('restaurant_id', '==', rid))
+    );
+    restaurantUsers.value = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  } finally {
+    loadingUsers.value = false;
+  }
+};
+
+const BASE_URL = 'https://demo-restaurante.tanesolutions.com';
+const copyUrl = async (type, rid) => {
+  const urls = {
+    booking: `${BASE_URL}/booking?id=${rid}`,
+    widget:  `${BASE_URL}/booking-widget?id=${rid}`,
+    admin:   `${BASE_URL}/admin/dashboard?id=${rid}`,
+  };
+  await navigator.clipboard.writeText(urls[type]);
+  copiedUrl.value = type;
+  setTimeout(() => { copiedUrl.value = ''; }, 1800);
+};
+
+const addUser = async () => {
+  const { email, role } = addUserModal.value;
+  if (!email.trim()) return;
+  addUserModal.value.saving = true;
+  addUserModal.value.result = null;
+
+  // Generate a readable temp password: Tane-XXXX-YYYY!
+  const rand    = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const tempPwd = `Tane-${rand}-${new Date().getFullYear()}!`;
+
+  try {
+    const apiKey = import.meta.env.PUBLIC_FIREBASE_API_KEY;
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password: tempPwd, returnSecureToken: false }),
+      }
+    );
+    const data = await res.json();
+
+    if (data.localId) {
+      await setDoc(doc(db, 'users', data.localId), {
+        email:         email.trim(),
+        role,
+        restaurant_id: profileRestaurant.value.id,
+        creado_en:     serverTimestamp(),
+      });
+      restaurantUsers.value.push({
+        uid: data.localId, email: email.trim(), role,
+        restaurant_id: profileRestaurant.value.id,
+      });
+      addUserModal.value.result = { success: true, password: tempPwd };
+    } else if (data.error?.message === 'EMAIL_EXISTS') {
+      addUserModal.value.result = {
+        success: false,
+        message: 'Este email ya tiene una cuenta. Busca su UID en Firebase Console → Authentication y añade manualmente el documento users/{uid} con { email, role, restaurant_id }.',
+      };
+    } else {
+      addUserModal.value.result = {
+        success: false,
+        message: data.error?.message || 'Error al crear el usuario.',
+      };
+    }
+  } catch (e) {
+    addUserModal.value.result = { success: false, message: 'Error de conexión.' };
+  } finally {
+    addUserModal.value.saving = false;
+  }
+};
+
+const revokeAccess = async (user) => {
+  if (!confirm(`¿Revocar acceso a ${user.email}?`)) return;
+  await updateDoc(doc(db, 'users', user.uid), { restaurant_id: null, role: null });
+  restaurantUsers.value = restaurantUsers.value.filter(u => u.uid !== user.uid);
+};
+
+const closeAddUserModal = () => {
+  addUserModal.value = { show: false, email: '', role: 'admin', saving: false, result: null };
 };
 </script>
 
@@ -1565,4 +1882,62 @@ const execDelete = async () => {
   .saas-grid { grid-template-columns: 1fr; }
   .mapa-grid { grid-template-columns: repeat(13, 42px); grid-template-rows: repeat(13, 42px); }
 }
+
+/* ── Restaurant profile ──────────────────────────── */
+.profile-id { font-family: monospace; font-size: 0.8em; background: #f0f0f0; padding: 0.15em 0.4em; border-radius: 3px; }
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+@media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+.profile-section { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 1.25rem; }
+.profile-section-title { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 1rem; display: flex; align-items: center; justify-content: space-between; }
+.profile-form { display: flex; flex-direction: column; gap: 0.875rem; }
+.profile-saved-msg { font-size: 0.7rem; color: #22c55e; font-weight: 700; margin: 0; }
+.profile-loading { font-size: 0.75rem; color: #999; padding: 0.75rem 0; }
+.profile-empty-users { font-size: 0.75rem; color: #aaa; font-style: italic; padding: 0.5rem 0; }
+/* URL list */
+.url-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem; }
+.url-item { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: #f9f9f9; border-radius: 6px; padding: 0.625rem 0.75rem; }
+.url-info { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.url-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #666; }
+.url-value { font-size: 0.7rem; color: #333; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.copy-btn { flex-shrink: 0; padding: 0.35rem 0.75rem; background: #000; color: #fff; border: none; border-radius: 4px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
+.copy-btn:hover { background: #333; }
+.copy-btn--copied { background: #22c55e; }
+/* Users list */
+.add-user-btn { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; background: #000; color: #fff; border: none; border-radius: 4px; padding: 0.3rem 0.65rem; cursor: pointer; }
+.add-user-btn:hover { opacity: 0.8; }
+.users-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.user-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: #f9f9f9; border-radius: 6px; }
+.user-info { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
+.user-email { font-size: 0.75rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role-badge { font-size: 0.55rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: 100px; flex-shrink: 0; }
+.user-role-badge--admin { background: #dbeafe; color: #1e40af; }
+.user-role-badge--staff { background: #f0fdf4; color: #166534; }
+.revoke-btn { width: 24px; height: 24px; border-radius: 50%; background: #fee2e2; color: #ef4444; border: none; font-size: 0.6rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+.revoke-btn:hover { background: #fca5a5; }
+/* Add user modal */
+.add-user-success { text-align: center; padding: 1rem 0; }
+.add-user-success-title { font-size: 1.1rem; font-weight: 700; color: #22c55e; margin: 0 0 0.5rem; }
+.add-user-success-desc { font-size: 0.75rem; color: #555; margin: 0 0 1rem; }
+.credentials-box { background: #f9f9f9; border: 1px solid #eee; border-radius: 6px; padding: 1rem; text-align: left; margin-bottom: 0.75rem; }
+.credentials-box p { font-size: 0.8rem; margin: 0.25rem 0; }
+.credentials-box code { background: #eee; padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.9em; }
+.add-user-hint { font-size: 0.65rem; color: #999; margin: 0; }
+.add-user-error { font-size: 0.8rem; color: #991b1b; background: #fff5f5; border: 1px solid #fca5a5; border-radius: 6px; padding: 1rem; }
+/* Danger zone */
+.danger-zone { margin-top: 1.5rem; background: #fff5f5; border: 1px solid #fca5a5; border-radius: 8px; padding: 1.25rem; }
+.danger-title { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: #991b1b; margin: 0 0 0.5rem; }
+.danger-desc { font-size: 0.75rem; color: #555; margin: 0 0 1rem; }
+/* Toggle switch */
+.toggle-label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding-top: 0.75rem; }
+.toggle-input { display: none; }
+.toggle-track { width: 36px; height: 20px; background: #d1d5db; border-radius: 100px; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.toggle-input:checked + .toggle-track { background: #000; }
+.toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+.toggle-input:checked + .toggle-track .toggle-thumb { transform: translateX(16px); }
+.toggle-text { font-size: 0.75rem; font-weight: 600; color: #333; }
+/* field-select */
+.field-select { background: transparent; border: none; border-bottom: 2px solid #000; padding: 0.6rem 0; font-size: 0.875rem; color: #000; font-family: inherit; outline: none; width: 100%; cursor: pointer; }
+/* nav back button */
+.nav-btn--back { opacity: 0.6; font-size: 0.6rem; }
+.nav-btn--back:hover { opacity: 1; background: transparent; color: #fff; }
 </style>
