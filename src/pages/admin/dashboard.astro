@@ -34,7 +34,12 @@ const restaurantId = Astro.url.searchParams.get('id') || 'the-editorial';
 </head>
 <body>
   <div id="app">
-    <AdminTable client:load restaurantId={restaurantId} />
+    <!--
+      client:only="vue" — evita el SSR del componente.
+      El panel admin usa Firebase Auth (async) y Teleport al body,
+      lo que causa hydration mismatch con client:load.
+    -->
+    <AdminTable client:only="vue" restaurantId={restaurantId} />
   </div>
 </body>
 </html>

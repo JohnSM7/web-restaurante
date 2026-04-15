@@ -16,7 +16,7 @@ const restaurantId = Astro.url.searchParams.get('id') || 'the-editorial';
 				<p class="text-[0.65rem] uppercase tracking-[0.4em] text-gray-400 font-bold">Reserva tu experiencia gastronómica</p>
 			</div>
 			
-			<BookingForm client:load restaurantId={restaurantId} />
+			<BookingForm client:only="vue" restaurantId={restaurantId} />
 		</div>
 	</main>
 </Layout>
