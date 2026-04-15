@@ -2,14 +2,23 @@
   <div class="booking-form-wrap">
 
     <!-- Success screen -->
-    <div v-if="successMsg" ref="successRef" class="success-screen" role="alert">
-      <div class="success-check">
+    <div v-if="bookingResult" ref="successRef" class="success-screen" role="alert">
+      <div class="success-check" :class="bookingResult.confirmed ? 'success-check--confirmed' : ''">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
       </div>
-      <p class="success-title">¡Solicitud recibida!</p>
-      <p class="success-sub">Te confirmaremos la reserva por email en breve.</p>
+      <p class="success-title">
+        {{ bookingResult.confirmed ? '¡Reserva confirmada!' : '¡Solicitud recibida!' }}
+      </p>
+      <p v-if="bookingResult.confirmed" class="success-detail">
+        {{ bookingResult.mesa }} · {{ bookingResult.pax }} personas · {{ bookingResult.hora }}h
+      </p>
+      <p class="success-sub">
+        {{ bookingResult.confirmed
+            ? 'Recibirás un email de confirmación en breve.'
+            : 'Revisaremos tu solicitud y te confirmaremos por email.' }}
+      </p>
     </div>
 
     <form v-else @submit.prevent="submitBooking" novalidate>
@@ -162,16 +171,20 @@
 import { ref, computed, watch, nextTick } from 'vue';
 import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase.ts';
+import {
+  getTurnTime, BUFFER_MIN, timeToMinutes,
+  findBestTable, countAvailableTables,
+} from '../lib/reservationUtils.ts';
 
 const props = defineProps({
   restaurantId: { type: String, default: 'the-editorial' }
 });
 
 // ─── State ───────────────────────────────────────────
-const submitting   = ref(false);
-const successMsg   = ref('');
-const errorMsg     = ref('');
-const successRef   = ref(null);
+const submitting    = ref(false);
+const bookingResult = ref(null); // { confirmed, mesa, hora, pax } | { confirmed: false }
+const errorMsg      = ref('');
+const successRef    = ref(null);
 const showHoraError = ref(false);
 
 const mesas          = ref([]);
@@ -195,51 +208,42 @@ const minDate = computed(() => new Date().toISOString().split('T')[0]);
 
 // ─── Pax stepper ──────────────────────────────────────
 const decrementPax = () => {
-  if (form.value.comensales > 1) {
-    form.value.comensales--;
-    form.value.hora = '';
-  }
+  if (form.value.comensales > 1) { form.value.comensales--; form.value.hora = ''; }
 };
 const incrementPax = () => {
-  if (form.value.comensales < 20) {
-    form.value.comensales++;
-    form.value.hora = '';
-  }
+  if (form.value.comensales < 20) { form.value.comensales++; form.value.hora = ''; }
 };
+const selectHora = (hora) => { form.value.hora = hora; showHoraError.value = false; };
 
-const selectHora = (hora) => {
-  form.value.hora = hora;
-  showHoraError.value = false;
-};
-
-// ─── Raw time slots ───────────────────────────────────
+// ─── Raw time slots (lunch + dinner) ─────────────────
 const RAW_HORAS = [
   '13:30', '14:00', '14:30', '15:00', '15:30',
   '20:30', '21:00', '21:30', '22:00', '22:30',
 ];
 
-// ─── FIXED: timeToMinutes helper ──────────────────────
-const timeToMinutes = (timeStr) => {
-  const [h, m] = timeStr.split(':').map(Number);
-  return h * 60 + m;
-};
-
-// ─── Computed slots with availability ────────────────
+// ─── Computed slots with real availability ────────────
+// Uses shared reservationUtils algorithm:
+//   - turn time by party size (60-120 min)
+//   - 15-min buffer between seatings
+//   - blocks 'confirmada' AND 'pendiente' bookings
 const computedSlots = computed(() => {
-  if (!form.value.fecha || mesas.value.length === 0) {
-    // No date or no tables: return all times without availability info
+  if (!form.value.fecha) {
     return RAW_HORAS.map(hora => ({ hora, available: true, remaining: 99 }));
   }
 
-  const now = new Date();
-  const selectedDate = new Date(form.value.fecha + 'T00:00:00');
-  const isToday = selectedDate.toDateString() === now.toDateString();
+  // If tables not yet loaded, show as loading (remaining = -1)
+  if (mesas.value.length === 0) {
+    return RAW_HORAS.map(hora => ({ hora, available: false, remaining: 0 }));
+  }
 
-  const tablesForPax = mesas.value.filter(m => m.pax_max >= form.value.comensales);
-  const myDuration   = form.value.comensales > 4 ? 120 : 90;
+  const now          = new Date();
+  const selectedDate = new Date(form.value.fecha + 'T00:00:00');
+  const isToday      = selectedDate.toDateString() === now.toDateString();
+  const pax          = form.value.comensales;
+  const tablesForPax = mesas.value.filter(m => m.pax_max >= pax);
 
   return RAW_HORAS.map(hora => {
-    // 1. Block past hours today (min 60 min lead time)
+    // Block past hours on today (need ≥ 60 min lead time)
     if (isToday) {
       const [h, m] = hora.split(':').map(Number);
       const slotTime = new Date();
@@ -249,32 +253,9 @@ const computedSlots = computed(() => {
       }
     }
 
-    // 2. No tables that can fit pax
-    if (tablesForPax.length === 0) {
-      return { hora, available: false, remaining: 0 };
-    }
+    if (tablesForPax.length === 0) return { hora, available: false, remaining: 0 };
 
-    // 3. Count tables occupied during this time window (only confirmed bookings)
-    const myStart = timeToMinutes(hora);
-    const myEnd   = myStart + myDuration;
-
-    const takenTableIds = new Set(
-      occupancyToday.value
-        .filter(r => {
-          if (r.estado !== 'confirmada') return false;
-          const resStart    = timeToMinutes(r.hora);
-          const resDuration = r.comensales > 4 ? 120 : 90;
-          const resEnd      = resStart + resDuration;
-          // Overlap if intervals intersect
-          return myStart < resEnd && myEnd > resStart;
-        })
-        .map(r => r.mesa_id)
-        .filter(Boolean)
-    );
-
-    const available = tablesForPax.filter(m => !takenTableIds.has(m.id));
-    const remaining = available.length;
-
+    const remaining = countAvailableTables(mesas.value, pax, hora, occupancyToday.value);
     return { hora, available: remaining > 0, remaining };
   });
 });
@@ -282,27 +263,19 @@ const computedSlots = computed(() => {
 // ─── Load room data when date changes ─────────────────
 const loadRoomData = async () => {
   if (!form.value.fecha) return;
-
   loadingSlots.value = true;
   try {
-    // Load tables
-    const mesasSnap = await getDocs(
-      query(collection(db, 'mesas'), where('restaurant_id', '==', props.restaurantId))
-    );
-    mesas.value = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // Load existing confirmed bookings for the selected date
-    const start = new Date(form.value.fecha + 'T00:00:00');
-    const end   = new Date(form.value.fecha + 'T23:59:59');
-    const resSnap = await getDocs(
-      query(
+    const [mesasSnap, resSnap] = await Promise.all([
+      getDocs(query(collection(db, 'mesas'), where('restaurant_id', '==', props.restaurantId))),
+      getDocs(query(
         collection(db, 'reservas'),
         where('restaurant_id', '==', props.restaurantId),
-        where('fecha', '>=', start),
-        where('fecha', '<=', end)
-      )
-    );
-    occupancyToday.value = resSnap.docs.map(d => d.data());
+        where('fecha', '>=', new Date(form.value.fecha + 'T00:00:00')),
+        where('fecha', '<=', new Date(form.value.fecha + 'T23:59:59')),
+      )),
+    ]);
+    mesas.value          = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    occupancyToday.value = resSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (err) {
     console.error('[BookingForm] loadRoomData error:', err);
   } finally {
@@ -311,25 +284,13 @@ const loadRoomData = async () => {
 };
 
 // ─── Watchers ─────────────────────────────────────────
-watch(() => form.value.fecha, () => {
-  form.value.hora = '';
-  loadRoomData();
+watch(() => form.value.fecha, () => { form.value.hora = ''; loadRoomData(); });
+watch(() => form.value.comensales, () => { form.value.hora = ''; });
+watch(bookingResult, async (val) => {
+  if (val) { await nextTick(); successRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 });
 
-// When pax changes, clear hora and re-evaluate (slots auto-recompute)
-watch(() => form.value.comensales, () => {
-  form.value.hora = '';
-});
-
-// Scroll to success message
-watch(successMsg, async (val) => {
-  if (val) {
-    await nextTick();
-    successRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-});
-
-// ─── Submit ───────────────────────────────────────────
+// ─── Submit — auto-assign table ───────────────────────
 const submitBooking = async () => {
   if (!form.value.hora) {
     showHoraError.value = true;
@@ -337,12 +298,18 @@ const submitBooking = async () => {
     return;
   }
 
-  submitting.value = true;
-  successMsg.value = '';
-  errorMsg.value   = '';
+  submitting.value    = true;
+  bookingResult.value = null;
+  errorMsg.value      = '';
 
   try {
-    const dateObj = new Date(`${form.value.fecha}T${form.value.hora}:00`);
+    const pax      = Number(form.value.comensales);
+    const duracion = getTurnTime(pax);
+    const dateObj  = new Date(`${form.value.fecha}T${form.value.hora}:00`);
+
+    // ── Best-fit table assignment ──────────────────────
+    // Find the smallest available table for this slot
+    const bestTable = findBestTable(mesas.value, pax, form.value.hora, occupancyToday.value);
 
     await addDoc(collection(db, 'reservas'), {
       restaurant_id:     props.restaurantId,
@@ -351,26 +318,26 @@ const submitBooking = async () => {
       telefono:          form.value.telefono,
       fecha:             dateObj,
       hora:              form.value.hora,
-      comensales:        Number(form.value.comensales),
+      comensales:        pax,
       comentarios:       form.value.comentarios || '',
       marketing_consent: Boolean(form.value.marketing_consent),
-      estado:            'pendiente',
+      // Auto-confirm when table found; pending only if restaurant has no tables configured
+      estado:            bestTable ? 'confirmada' : 'pendiente',
+      mesa_id:           bestTable?.id ?? null,
+      duracion_min:      duracion,
       creado_en:         serverTimestamp(),
       notas:             '',
     });
 
-    successMsg.value = 'Solicitud recibida';
+    bookingResult.value = bestTable
+      ? { confirmed: true,  mesa: bestTable.nombre, hora: form.value.hora, pax }
+      : { confirmed: false };
 
-    // Reset form
+    // Reset
     form.value = {
-      nombre_cliente:    '',
-      email:             '',
-      telefono:          '',
-      fecha:             '',
-      hora:              '',
-      comensales:        2,
-      comentarios:       '',
-      marketing_consent: true,
+      nombre_cliente: '', email: '', telefono: '',
+      fecha: '', hora: '', comensales: 2,
+      comentarios: '', marketing_consent: true,
     };
     mesas.value          = [];
     occupancyToday.value = [];
@@ -595,10 +562,19 @@ const submitBooking = async () => {
   border: 2px solid rgba(255,255,255,0.3);
   border-radius: 50%; margin-bottom: 1.25rem;
 }
+.success-check--confirmed {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+}
 .success-title {
   font-family: 'Noto Serif', Georgia, serif;
   font-size: 1.5rem; font-weight: 300;
   margin: 0 0 0.5rem;
+}
+.success-detail {
+  font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: #4ade80; margin: 0 0 0.75rem;
 }
 .success-sub {
   font-size: 0.65rem; opacity: 0.6;

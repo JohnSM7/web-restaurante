@@ -499,6 +499,7 @@ import {
 } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
+import { findBestTable, getTurnTime, timeToMinutes } from '../lib/reservationUtils.ts';
 
 defineProps({ restaurantId: { type: String, default: 'the-editorial' } });
 
@@ -813,14 +814,32 @@ const changeStatus = async (id, newStatus) => {
   await updateDoc(doc(db, 'reservas', id), { estado: newStatus });
 };
 
-/** Confirm booking and auto-assign an available table */
+/**
+ * Confirm a pending booking with smart best-fit table assignment.
+ * Uses the same algorithm as BookingForm (reservationUtils):
+ *  - Smallest eligible table (minimize waste)
+ *  - Checks time conflicts with the day's other reservations
+ *  - 15-min buffer between seatings
+ */
 const approveBooking = async (res) => {
-  const update = { estado: 'confirmada' };
-  // Find first available table that fits pax
-  const available = mesas.value.find(
-    m => m.estado !== 'ocupada' && m.pax_max >= res.comensales
-  );
-  if (available) update.mesa_id = available.id;
+  const update = { estado: 'confirmada', mesa_id: res.mesa_id ?? null };
+
+  // Only re-assign if not already assigned
+  if (!res.mesa_id) {
+    // Get all reservations for the same day (excluding the one being approved)
+    const resDate = res.fecha?.toDate ? res.fecha.toDate() : new Date(res.fecha);
+    const dayStr  = resDate.toISOString().split('T')[0];
+    const sameDayReservas = reservas.value.filter(r => {
+      if (r.id === res.id) return false; // exclude self
+      const d = r.fecha?.toDate ? r.fecha.toDate() : new Date(r.fecha);
+      return d.toISOString().split('T')[0] === dayStr;
+    });
+
+    const best = findBestTable(mesas.value, res.comensales, res.hora, sameDayReservas);
+    if (best) update.mesa_id = best.id;
+    else delete update.mesa_id;
+  }
+
   await updateDoc(doc(db, 'reservas', res.id), update);
 };
 
@@ -833,9 +852,7 @@ const saveNota = async (id) => {
 
 const toggleMesaEstado = async (mesa) => {
   const cycle = { libre: 'reservada', reservada: 'ocupada', ocupada: 'libre' };
-  await updateDoc(doc(db, 'mesas', mesa.id), {
-    estado: cycle[mesa.estado] ?? 'libre'
-  });
+  await updateDoc(doc(db, 'mesas', mesa.id), { estado: cycle[mesa.estado] ?? 'libre' });
 };
 
 // ─── Mapa editor actions ─────────────────────────────
