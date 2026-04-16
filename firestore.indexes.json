@@ -13,6 +13,14 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "restaurant_id", "order": "ASCENDING" },
+        { "fieldPath": "creado_en",     "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reservas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "restaurant_id", "order": "ASCENDING" },
         { "fieldPath": "fecha",         "order": "ASCENDING" }
       ]
     }

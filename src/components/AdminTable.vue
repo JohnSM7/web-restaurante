@@ -687,6 +687,11 @@
                 </p>
               </div>
 
+              <div v-else-if="planUsageLoading" class="profile-loading">Cargando uso del plan…</div>
+              <div v-else-if="planUsageError" class="profile-loading profile-loading--error">
+                No se pudo cargar el plan.
+                <button @click="fetchPlanUsage(profileRestaurant.id)" class="retry-btn">Reintentar</button>
+              </div>
               <div v-else class="profile-loading">Cargando uso del plan…</div>
             </div>
 
@@ -985,6 +990,8 @@ const profileSaving     = ref(false);
 const profileSaved      = ref(false);
 const profileStats      = ref({ reservas: null, mesas: null });
 const planUsage         = ref(null);
+const planUsageLoading  = ref(false);
+const planUsageError    = ref(false);
 const planUpgrading     = ref(null);
 const restaurantUsers   = ref([]);
 const loadingUsers      = ref(false);
@@ -1480,13 +1487,18 @@ const openProfile = async (restaurant) => {
 };
 
 const fetchPlanUsage = async (rid) => {
+  planUsageLoading.value = true;
+  planUsageError.value   = false;
+  planUsage.value        = null;
   try {
     const fn  = httpsCallable(fns, 'getPlanUsage');
     const res = await fn({ restaurant_id: rid });
     planUsage.value = res.data;
   } catch (e) {
-    console.warn('[plan] could not fetch usage:', e?.message);
-    planUsage.value = null;
+    console.error('[plan] getPlanUsage falló:', e?.code, e?.message, e);
+    planUsageError.value = true;
+  } finally {
+    planUsageLoading.value = false;
   }
 };
 
@@ -2514,6 +2526,9 @@ const requestOwnPasswordReset = async () => {
 .profile-form input:focus { border-color: #000; }
 .profile-saved-msg { font-size: 0.7rem; color: #22c55e; font-weight: 700; margin: 0; }
 .profile-loading { font-size: 0.75rem; color: #999; padding: 0.5rem 0; }
+.profile-loading--error { color: #ef4444; display: flex; align-items: center; gap: 0.75rem; }
+.retry-btn { font-size: 0.7rem; padding: 0.25rem 0.75rem; border: 1px solid #ef4444; color: #ef4444; background: transparent; border-radius: 4px; cursor: pointer; }
+.retry-btn:hover { background: #fef2f2; }
 .prof-form-footer { display: flex; align-items: center; gap: 1rem; margin-top: 0.25rem; }
 
 /* Horarios */
