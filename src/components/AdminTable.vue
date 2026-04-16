@@ -1902,7 +1902,7 @@ const requestOwnPasswordReset = async () => {
 .res-switcher:focus { border-color: #000; }
 
 /* ── View section ────────────────────────────────── */
-.view-section { padding: 1.5rem; }
+.view-section { padding: 1.5rem; padding-bottom: 2.5rem; }
 .view-header {
   display: flex; justify-content: space-between;
   align-items: flex-start; flex-wrap: wrap;
@@ -2447,7 +2447,7 @@ const requestOwnPasswordReset = async () => {
 
 /* ── Restaurant profile ──────────────────────────── */
 /* ── Profile view ─────────────────────────────────── */
-.prof-view { display: flex; flex-direction: column; gap: 1.5rem; }
+.prof-view { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; min-width: 0; }
 
 /* Hero */
 .prof-hero {
@@ -2599,7 +2599,7 @@ const requestOwnPasswordReset = async () => {
 .add-user-error { font-size: 0.8rem; color: #991b1b; background: #fff5f5; border: 1px solid #fca5a5; border-radius: 6px; padding: 1rem; }
 
 /* Danger zone */
-.danger-zone { background: #fff; border: 1px solid #fca5a5; border-radius: 10px; padding: 1.25rem 1.375rem; }
+.danger-zone { background: #fff; border: 1px solid #fca5a5; border-radius: 10px; padding: 1.25rem 1.375rem; width: 100%; max-width: 100%; box-sizing: border-box; }
 .danger-inner { display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
 .danger-title { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: #991b1b; margin: 0 0 0.35rem; }
 .danger-desc { font-size: 0.75rem; color: #777; margin: 0; }
