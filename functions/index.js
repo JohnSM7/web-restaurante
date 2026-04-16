@@ -232,6 +232,62 @@ exports.revokeStaffUser = onCall(async (request) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CALLABLE: resetStaffPassword
+// Genera un enlace de restablecimiento y lo envía por email al usuario.
+// ─────────────────────────────────────────────────────────────────────────────
+exports.resetStaffPassword = onCall(async (request) => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+  // Requiere ser superadmin o admin
+  const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+  const caller     = callerSnap.exists ? callerSnap.data() : null;
+  const isSuperAdmin = caller?.role === "superadmin";
+  const isAdmin      = caller?.role === "admin";
+
+  if (!isSuperAdmin && !isAdmin)
+    throw new HttpsError("permission-denied", "Solo admin o superadmin puede resetear contraseñas.");
+
+  const { uid } = request.data;
+  if (!uid) throw new HttpsError("invalid-argument", "Falta uid.");
+
+  // Obtener datos del usuario objetivo en Firestore
+  const targetSnap = await db.collection("users").doc(uid).get();
+  if (!targetSnap.exists) throw new HttpsError("not-found", "Usuario no encontrado.");
+  const target = targetSnap.data();
+
+  // Admin solo puede resetear contraseñas de staff de su propio restaurante
+  if (isAdmin && !isSuperAdmin) {
+    if (target.restaurant_id !== caller.restaurant_id)
+      throw new HttpsError("permission-denied", "No tienes permiso sobre este usuario.");
+    if (target.role !== "staff")
+      throw new HttpsError("permission-denied", "Solo puedes resetear contraseñas de staff.");
+  }
+
+  // Obtener el email desde Firebase Auth
+  const authUser   = await auth.getUser(uid);
+  const { email }  = authUser;
+
+  // Generar enlace de restablecimiento de Firebase Auth
+  const resetLink  = await auth.generatePasswordResetLink(email, {
+    url: `${APP_URL}/admin/dashboard`,
+  });
+
+  // Obtener datos del restaurante para el branding del email
+  const restaurante = await getRestauranteData(target.restaurant_id);
+
+  // Enviar email vía Resend
+  await resend.emails.send({
+    from:    FROM_EMAIL,
+    to:      [email],
+    subject: `Restablece tu contraseña — ${restaurante.nombre || "Tane Booking"}`,
+    html:    templates.restablecimientoContrasena(email, resetLink, restaurante),
+  });
+
+  console.log(`[resetStaffPassword] reset email → ${email}`);
+  return { success: true, email };
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CALLABLE: createCheckoutSession
 // Creates a Stripe Checkout session for plan upgrade.
 // ─────────────────────────────────────────────────────────────────────────────

@@ -217,5 +217,36 @@ module.exports = {
       <p>Si no puedes asistir, por favor avísanos respondiendo a este email para que otra persona pueda disfrutar de la mesa.</p>
       ${makeFooter(restaurante)}
     </div>
+  `,
+
+  // 5. RESTABLECIMIENTO DE CONTRASEÑA (staff/admin)
+  restablecimientoContrasena: (email, resetLink, restaurante) => `
+    <div style="${baseStyle}">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="font-size: 22px; font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin:0;">
+          TANE <span style="font-style: italic; color: #777;">Booking</span>
+        </h1>
+        <p style="font-size: 11px; color: #aaa; letter-spacing: 0.15em; margin-top: 4px;">PANEL DE GESTIÓN</p>
+      </div>
+
+      <h2 style="font-size: 20px; font-weight: 400; margin: 0 0 16px;">Restablece tu contraseña</h2>
+      <p style="color: #555; margin: 0 0 24px;">Alguien ha solicitado el restablecimiento de contraseña para la cuenta <strong>${email}</strong> en <strong>${restaurante.nombre || 'Tane Booking'}</strong>.</p>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${resetLink}"
+          style="display: inline-block; background: #000; color: #fff; text-decoration: none;
+                 font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+                 padding: 14px 32px; border-radius: 4px;">
+          Restablecer contraseña →
+        </a>
+        <p style="font-size: 11px; color: #aaa; margin-top: 12px; word-break: break-all;">${resetLink}</p>
+      </div>
+
+      <p style="font-size: 12px; color: #888; background: #f9f9f9; border: 1px solid #eee; border-radius: 6px; padding: 12px 16px; margin: 0;">
+        Este enlace caduca en 1 hora. Si no solicitaste este cambio, ignora este email.
+      </p>
+
+      ${taneFooter}
+    </div>
   `
 };

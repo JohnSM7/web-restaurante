@@ -725,7 +725,21 @@
                     <span class="user-email">{{ u.email }}</span>
                     <span :class="['user-role-badge', `user-role-badge--${u.role}`]">{{ u.role }}</span>
                   </div>
-                  <button @click="revokeAccess(u)" class="revoke-btn" title="Revocar acceso">✕</button>
+                  <div class="user-actions">
+                    <button
+                      @click="resetPassword(u)"
+                      :disabled="!!resettingPwd[u.uid]"
+                      :title="`Enviar email de restablecimiento a ${u.email}`"
+                      :class="['reset-pwd-btn', resettingPwd[u.uid] === 'done' ? 'reset-pwd-btn--done' : resettingPwd[u.uid] === 'error' ? 'reset-pwd-btn--error' : '']">
+                      <span v-if="resettingPwd[u.uid] === 'sending'">…</span>
+                      <span v-else-if="resettingPwd[u.uid] === 'done'">✓</span>
+                      <span v-else-if="resettingPwd[u.uid] === 'error'">!</span>
+                      <span v-else>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      </span>
+                    </button>
+                    <button @click="revokeAccess(u)" class="revoke-btn" title="Revocar acceso">✕</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -900,7 +914,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import {
   collection, query, where, orderBy,
   onSnapshot, updateDoc, doc, deleteDoc,
@@ -956,6 +970,7 @@ const restaurantUsers   = ref([]);
 const loadingUsers      = ref(false);
 const copiedUrl         = ref('');
 const addUserModal      = ref({ show: false, email: '', role: 'admin', saving: false, result: null });
+const resettingPwd = reactive({}); // uid → 'sending' | 'done' | 'error'
 
 // ─── Filters ─────────────────────────────────────────
 const filterDate    = ref('');   // empty = todas las fechas
@@ -1542,6 +1557,20 @@ const revokeAccess = async (user) => {
     restaurantUsers.value = restaurantUsers.value.filter(u => u.uid !== user.uid);
   } catch (e) {
     alert('Error al revocar acceso: ' + (e?.message || e));
+  }
+};
+
+const resetPassword = async (u) => {
+  resettingPwd[u.uid] = 'sending';
+  try {
+    const fn = httpsCallable(fns, 'resetStaffPassword');
+    await fn({ uid: u.uid });
+    resettingPwd[u.uid] = 'done';
+    setTimeout(() => { delete resettingPwd[u.uid]; }, 3000);
+  } catch (e) {
+    resettingPwd[u.uid] = 'error';
+    setTimeout(() => { delete resettingPwd[u.uid]; }, 3000);
+    console.error('[resetPassword]', e);
   }
 };
 
@@ -2195,11 +2224,12 @@ const closeAddUserModal = () => {
   /* KPI: 2×2 */
   .kpi-strip { grid-template-columns: repeat(2, 1fr); }
   /* Booking actions: move below content */
-  .booking-row { flex-wrap: wrap; }
+  .booking-row { flex-wrap: wrap; overflow: hidden; }
   .booking-actions {
-    width: 100%; flex-direction: row;
+    flex: 0 0 100%; max-width: 100%; flex-direction: row;
     border-left: none; border-top: 1px solid #f0f0f0;
     padding: 0.75rem 1rem; gap: 0.5rem;
+    box-sizing: border-box;
   }
   .act-btn { flex: 1; }
   /* Profile: single column */
@@ -2234,9 +2264,15 @@ const closeAddUserModal = () => {
   .filter-group { width: 100%; min-width: 0; }
   .filter-search-wrap { width: 100%; min-width: 0; flex: none; }
   .filter-search { min-width: 0 !important; width: 100%; }
-  /* Tabs: horizontal scroll */
-  .tab-group { gap: 0.25rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; width: 100%; min-width: 0; }
-  .tab-pill  { padding: 0.3rem 0.625rem; font-size: 0.65rem; white-space: nowrap; }
+  /* Tabs: horizontal scroll — hide scrollbar visually */
+  .tab-group {
+    gap: 0.25rem; overflow-x: auto; flex-wrap: nowrap;
+    width: 100%; min-width: 0;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  .tab-group::-webkit-scrollbar { display: none; } /* Chrome/Safari/iOS */
+  .tab-pill { padding: 0.3rem 0.625rem; font-size: 0.65rem; white-space: nowrap; }
 
   /* Booking rows */
   .booking-top  { flex-direction: column; }
@@ -2435,6 +2471,18 @@ const closeAddUserModal = () => {
 .user-role-badge--staff { background: #f0fdf4; color: #166534; }
 .revoke-btn { width: 24px; height: 24px; border-radius: 50%; background: #fee2e2; color: #ef4444; border: none; font-size: 0.6rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
 .revoke-btn:hover { background: #fca5a5; }
+.user-actions { display: flex; align-items: center; gap: 0.375rem; flex-shrink: 0; }
+.reset-pwd-btn {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #e0f2fe; color: #0369a1;
+  border: none; font-size: 0.65rem; font-weight: 800;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s; flex-shrink: 0;
+}
+.reset-pwd-btn:hover:not(:disabled) { background: #bae6fd; }
+.reset-pwd-btn:disabled { opacity: 0.6; cursor: default; }
+.reset-pwd-btn--done  { background: #dcfce7; color: #166534; }
+.reset-pwd-btn--error { background: #fee2e2; color: #991b1b; }
 
 /* Add user modal */
 .add-user-success { text-align: center; padding: 1rem 0; }
