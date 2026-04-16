@@ -1440,6 +1440,7 @@ const DEFAULT_HORARIOS = {
 const openOwnProfile = async () => {
   const rid = currentRestaurantId.value;
   if (!rid) return;
+  sidebarOpen.value = false;   // cerrar sidebar igual que nav()
   try {
     const snap = await getDoc(doc(db, 'restaurants', rid));
     if (!snap.exists()) return;
