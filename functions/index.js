@@ -109,6 +109,30 @@ exports.onReservaCreate = onDocumentCreated("reservas/{reservaId}", async (event
     }
   }
 
+  if (!restaurante.nombre) {
+    console.warn(`[email] restaurante.nombre vacío para restaurant_id=${data.restaurant_id} — revisar /restaurants/${data.restaurant_id} en Firestore`);
+  }
+
+  // ── Email de solicitud recibida si la reserva está pendiente (modo manual) ──
+  // En modo manual el estado inicial es "pendiente": enviamos acuse de recibo.
+  if (data.estado === "pendiente" && data.email && planData.emails) {
+    const { nombre_cliente, email, fecha, hora } = data;
+    const pax     = data.pax || data.personas || 1;
+    const dateStr = (fecha.toDate ? fecha.toDate() : new Date(fecha))
+      .toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+    try {
+      await resend.emails.send({
+        from:    FROM_EMAIL,
+        to:      [email],
+        subject: `Hemos recibido tu solicitud — ${restaurante.nombre || "el restaurante"}`,
+        html:    templates.solicitudRecibida(nombre_cliente, dateStr, hora, pax, restaurante),
+      });
+      console.log(`[email] solicitud-recibida → ${email}`);
+    } catch (e) {
+      console.error("[email] solicitud-recibida:", e);
+    }
+  }
+
   // ── Email de confirmación si la reserva nació ya como "confirmada" ─────────
   // (modo automático: onReservaUpdate no se dispara en creaciones)
   if (data.estado === "confirmada" && data.email && planData.emails) {
@@ -146,6 +170,10 @@ exports.onReservaUpdate = onDocumentUpdated("reservas/{reservaId}", async (event
   // Only send emails if the plan allows it
   if (!planData.emails) return;
 
+  if (!restaurante.nombre) {
+    console.warn(`[email] restaurante.nombre vacío para restaurant_id=${restaurant_id} — revisar /restaurants/${restaurant_id} en Firestore`);
+  }
+
   const dateStr = (fecha.toDate ? fecha.toDate() : new Date(fecha))
     .toLocaleDateString("es-ES", { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -154,10 +182,12 @@ exports.onReservaUpdate = onDocumentUpdated("reservas/{reservaId}", async (event
     const cancelLink = `${APP_URL}/cancel?id=${event.params.reservaId}`;
     subject = `¡Tu mesa en ${restaurante.nombre || "el restaurante"} está confirmada!`;
     html    = templates.reservaConfirmada(nombre_cliente, dateStr, hora, cancelLink, restaurante);
-  } else if (dataAfter.estado === "cancelada" || dataAfter.estado === "no-show") {
+  } else if (dataAfter.estado === "cancelada") {
+    // no-show es un estado interno del admin — NO se notifica al cliente
     subject = `Actualización de tu reserva en ${restaurante.nombre || "el restaurante"}`;
     html    = templates.reservaCancelada(nombre_cliente, dateStr, hora, restaurante);
   } else {
+    // pendiente, no-show, etc. → sin email al cliente
     return;
   }
 

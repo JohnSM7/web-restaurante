@@ -47,46 +47,7 @@ const taneFooter = `
 `;
 
 module.exports = {
-  // 0. BIENVENIDA USUARIO (admin/staff)
-  bienvenidaUsuario: (email, password, adminUrl, restaurante, role) => `
-    <div style="${baseStyle}">
-      <div style="text-align: center; margin-bottom: 40px;">
-        <h1 style="font-size: 22px; font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin:0;">
-          TANE <span style="font-style: italic; color: #777;">Booking</span>
-        </h1>
-        <p style="font-size: 11px; color: #aaa; letter-spacing: 0.15em; margin-top: 4px;">PANEL DE GESTIÓN</p>
-      </div>
-
-      <h2 style="font-size: 20px; font-weight: 400; margin: 0 0 8px;">Bienvenido al panel de ${restaurante.nombre || 'tu restaurante'}</h2>
-      <p style="color: #555; margin: 0 0 28px;">Se ha creado tu cuenta de acceso con el rol <strong>${role}</strong>. Aquí tienes todo lo que necesitas para empezar:</p>
-
-      <div style="background: #f7f7f7; border-radius: 8px; padding: 24px; margin: 0 0 24px;">
-        <p style="margin: 0 0 12px; font-size: 13px;"><strong>Email:</strong> ${email}</p>
-        <p style="margin: 0 0 12px; font-size: 13px;"><strong>Contraseña temporal:</strong>
-          <code style="background:#eee; padding: 3px 8px; border-radius: 4px; font-size: 13px; letter-spacing: 0.05em;">${password}</code>
-        </p>
-        <p style="margin: 0; font-size: 13px;"><strong>Restaurante:</strong> ${restaurante.nombre || '—'}</p>
-      </div>
-
-      <div style="text-align: center; margin: 28px 0;">
-        <a href="${adminUrl}"
-          style="display: inline-block; background: #000; color: #fff; text-decoration: none;
-                 font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-                 padding: 14px 32px; border-radius: 4px;">
-          Acceder al panel →
-        </a>
-        <p style="font-size: 11px; color: #aaa; margin-top: 12px;">${adminUrl}</p>
-      </div>
-
-      <p style="font-size: 12px; color: #888; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 12px 16px; margin: 0;">
-        ⚠️ Por seguridad, cambia tu contraseña en el primer acceso. Esta contraseña es temporal y solo debe usarse una vez.
-      </p>
-
-      ${taneFooter}
-    </div>
-  `,
-
-  // 0b. ACTIVACIÓN DE CUENTA (nuevo usuario — enlace para establecer contraseña)
+  // 0. ACTIVACIÓN DE CUENTA (nuevo usuario — enlace para establecer contraseña)
   activacionCuenta: (email, setPwdLink, adminUrl, restaurante, role) => `
     <div style="${baseStyle}">
       <div style="text-align: center; margin-bottom: 40px;">
