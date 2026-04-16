@@ -203,12 +203,30 @@ exports.onReservaUpdate = onDocumentUpdated("reservas/{reservaId}", async (event
 // CALLABLE: createStaffUser
 // ─────────────────────────────────────────────────────────────────────────────
 exports.createStaffUser = onCall(async (request) => {
-  await requireSuperAdmin(request.auth);
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
   const { email, role, restaurant_id } = request.data;
   if (!email || !role || !restaurant_id)
     throw new HttpsError("invalid-argument", "Faltan parámetros: email, role, restaurant_id.");
   if (!["admin", "staff"].includes(role))
     throw new HttpsError("invalid-argument", "El rol debe ser 'admin' o 'staff'.");
+
+  // Verificar rol del invocador
+  const callerSnap       = await db.collection("users").doc(request.auth.uid).get();
+  const caller           = callerSnap.exists ? callerSnap.data() : null;
+  const callerSuperAdmin = caller?.role === "superadmin";
+  const callerAdmin      = caller?.role === "admin";
+
+  if (!callerSuperAdmin && !callerAdmin)
+    throw new HttpsError("permission-denied", "Solo admin o superadmin puede crear usuarios.");
+
+  // Admin solo puede crear 'staff' para su propio restaurante
+  if (callerAdmin && !callerSuperAdmin) {
+    if (role !== "staff")
+      throw new HttpsError("permission-denied", "Admin solo puede crear usuarios con rol 'staff'.");
+    if (caller.restaurant_id !== restaurant_id)
+      throw new HttpsError("permission-denied", "Solo puedes gestionar usuarios de tu propio restaurante.");
+  }
 
   const rand    = Math.random().toString(36).slice(2, 6).toUpperCase();
   const tempPwd = `Tane-${rand}-${new Date().getFullYear()}!`;
@@ -257,9 +275,28 @@ exports.createStaffUser = onCall(async (request) => {
 // CALLABLE: revokeStaffUser
 // ─────────────────────────────────────────────────────────────────────────────
 exports.revokeStaffUser = onCall(async (request) => {
-  await requireSuperAdmin(request.auth);
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
   const { uid } = request.data;
   if (!uid) throw new HttpsError("invalid-argument", "Falta uid.");
+
+  const callerSnap       = await db.collection("users").doc(request.auth.uid).get();
+  const caller           = callerSnap.exists ? callerSnap.data() : null;
+  const callerSuperAdmin = caller?.role === "superadmin";
+  const callerAdmin      = caller?.role === "admin";
+
+  if (!callerSuperAdmin && !callerAdmin)
+    throw new HttpsError("permission-denied", "Solo admin o superadmin puede revocar usuarios.");
+
+  // Admin solo puede revocar staff de su propio restaurante
+  if (callerAdmin && !callerSuperAdmin) {
+    const targetSnap = await db.collection("users").doc(uid).get();
+    const target     = targetSnap.exists ? targetSnap.data() : null;
+    if (target?.role !== "staff")
+      throw new HttpsError("permission-denied", "Admin solo puede revocar usuarios con rol 'staff'.");
+    if (target?.restaurant_id !== caller.restaurant_id)
+      throw new HttpsError("permission-denied", "Solo puedes gestionar usuarios de tu propio restaurante.");
+  }
+
   await db.collection("users").doc(uid).set({ role: null, restaurant_id: null }, { merge: true });
   return { success: true };
 });

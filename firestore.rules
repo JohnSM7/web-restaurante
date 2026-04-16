@@ -53,7 +53,17 @@ service cloud.firestore {
     match /restaurants/{restaurantId} {
       // Public read: booking page needs restaurant name and horarios config
       allow read: if true;
-      allow write: if isSuperAdmin();
+      // Crear y eliminar restaurantes: solo superadmin
+      allow create, delete: if isSuperAdmin();
+      // Actualizar:
+      //   Superadmin puede cambiar todo (plan, activo, datos, stripe...)
+      //   Admin puede cambiar solo datos operativos (nombre, horarios, contacto, modo_confirmacion)
+      //   pero NO puede tocar plan, activo ni campos de facturación Stripe
+      allow update: if isSuperAdmin()
+        || (isRestaurantAdmin(restaurantId)
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['plan', 'activo', 'stripe_customer_id',
+                         'stripe_subscription_id', 'plan_activo_desde']));
     }
 
     match /users/{userId} {
