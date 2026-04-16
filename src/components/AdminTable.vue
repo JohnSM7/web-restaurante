@@ -737,7 +737,7 @@
               <h4 class="prof-card-title">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 Accesos
-                <button @click="addUserModal.value = { show: true, email: '', role: isSuperAdmin ? 'admin' : 'staff', saving: false, result: null }" class="add-user-btn">+ Añadir</button>
+                <button @click="openAddUserModal" class="add-user-btn">+ Añadir</button>
               </h4>
               <div v-if="loadingUsers" class="profile-loading">Cargando…</div>
               <div v-else-if="restaurantUsers.length === 0" class="profile-empty-users">
@@ -1641,6 +1641,11 @@ const resetPassword = async (u) => {
     setTimeout(() => { delete resettingPwd[u.uid]; }, 3000);
     console.error('[resetPassword]', e);
   }
+};
+
+const openAddUserModal = () => {
+  // Admin solo puede crear staff; superadmin puede elegir admin o staff
+  addUserModal.value = { show: true, email: '', role: isSuperAdmin.value ? 'admin' : 'staff', saving: false, result: null };
 };
 
 const closeAddUserModal = () => {
