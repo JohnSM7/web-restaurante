@@ -205,19 +205,23 @@ exports.createStaffUser = onCall(async (request) => {
   if (isNewUser) {
     try {
       const restaurante = await getRestauranteData(restaurant_id);
+      // Generate a set-password link (same mechanism as reset, first-time setup)
+      const setPwdLink = await auth.generatePasswordResetLink(email, {
+        url: `${APP_URL}/admin/dashboard`,
+      });
       await resend.emails.send({
         from:    FROM_EMAIL,
         to:      [email],
-        subject: `Acceso a ${restaurante.nombre || "el panel de gestión"} — Tane Booking`,
-        html:    templates.bienvenidaUsuario(email, tempPwd, APP_URL + "/admin/dashboard", restaurante, role),
+        subject: `Activa tu acceso a ${restaurante.nombre || "el panel de gestión"} — Tane Booking`,
+        html:    templates.activacionCuenta(email, setPwdLink, APP_URL + "/admin/dashboard", restaurante, role),
       });
-      console.log(`[createStaffUser] welcome email → ${email}`);
+      console.log(`[createStaffUser] activation email → ${email}`);
     } catch (e) {
       console.error("[createStaffUser] email failed:", e);
     }
   }
 
-  return { uid, email, role, isNewUser, tempPassword: isNewUser ? tempPwd : null };
+  return { uid, email, role, isNewUser };
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -238,30 +242,37 @@ exports.revokeStaffUser = onCall(async (request) => {
 exports.resetStaffPassword = onCall(async (request) => {
   if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
 
-  // Requiere ser superadmin o admin
-  const callerSnap = await db.collection("users").doc(request.auth.uid).get();
-  const caller     = callerSnap.exists ? callerSnap.data() : null;
-  const isSuperAdmin = caller?.role === "superadmin";
-  const isAdmin      = caller?.role === "admin";
-
-  if (!isSuperAdmin && !isAdmin)
-    throw new HttpsError("permission-denied", "Solo admin o superadmin puede resetear contraseñas.");
-
   const { uid } = request.data;
   if (!uid) throw new HttpsError("invalid-argument", "Falta uid.");
+
+  const isSelfReset = request.auth.uid === uid;
+
+  // Cualquier usuario puede resetear su propia contraseña.
+  // Para resetear la de otro, se necesita ser admin o superadmin.
+  if (!isSelfReset) {
+    const callerSnap   = await db.collection("users").doc(request.auth.uid).get();
+    const caller       = callerSnap.exists ? callerSnap.data() : null;
+    const isSuperAdmin = caller?.role === "superadmin";
+    const isAdmin      = caller?.role === "admin";
+
+    if (!isSuperAdmin && !isAdmin)
+      throw new HttpsError("permission-denied", "Solo admin o superadmin puede resetear contraseñas de otros usuarios.");
+
+    // Admin solo puede resetear contraseñas de staff de su propio restaurante
+    if (isAdmin && !isSuperAdmin) {
+      const targetSnap = await db.collection("users").doc(uid).get();
+      const target     = targetSnap.exists ? targetSnap.data() : null;
+      if (target?.restaurant_id !== caller.restaurant_id)
+        throw new HttpsError("permission-denied", "No tienes permiso sobre este usuario.");
+      if (target?.role !== "staff")
+        throw new HttpsError("permission-denied", "Solo puedes resetear contraseñas de staff.");
+    }
+  }
 
   // Obtener datos del usuario objetivo en Firestore
   const targetSnap = await db.collection("users").doc(uid).get();
   if (!targetSnap.exists) throw new HttpsError("not-found", "Usuario no encontrado.");
   const target = targetSnap.data();
-
-  // Admin solo puede resetear contraseñas de staff de su propio restaurante
-  if (isAdmin && !isSuperAdmin) {
-    if (target.restaurant_id !== caller.restaurant_id)
-      throw new HttpsError("permission-denied", "No tienes permiso sobre este usuario.");
-    if (target.role !== "staff")
-      throw new HttpsError("permission-denied", "Solo puedes resetear contraseñas de staff.");
-  }
 
   // Obtener el email desde Firebase Auth
   const authUser   = await auth.getUser(uid);

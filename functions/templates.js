@@ -85,6 +85,48 @@ module.exports = {
       ${taneFooter}
     </div>
   `,
+
+  // 0b. ACTIVACIÓN DE CUENTA (nuevo usuario — enlace para establecer contraseña)
+  activacionCuenta: (email, setPwdLink, adminUrl, restaurante, role) => `
+    <div style="${baseStyle}">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="font-size: 22px; font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin:0;">
+          TANE <span style="font-style: italic; color: #777;">Booking</span>
+        </h1>
+        <p style="font-size: 11px; color: #aaa; letter-spacing: 0.15em; margin-top: 4px;">PANEL DE GESTIÓN</p>
+      </div>
+
+      <h2 style="font-size: 20px; font-weight: 400; margin: 0 0 8px;">Bienvenido a ${restaurante.nombre || 'el panel de gestión'}</h2>
+      <p style="color: #555; margin: 0 0 28px;">
+        Se ha creado tu cuenta con el rol <strong>${role}</strong>.
+        Para acceder por primera vez establece tu contraseña usando el botón de abajo.
+      </p>
+
+      <div style="background: #f7f7f7; border-radius: 8px; padding: 20px; margin: 0 0 28px;">
+        <p style="margin: 0 0 4px; font-size: 13px;"><strong>Email:</strong> ${email}</p>
+        <p style="margin: 0; font-size: 13px; color: #888;">Restaurante: ${restaurante.nombre || '—'}</p>
+      </div>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${setPwdLink}"
+          style="display: inline-block; background: #000; color: #fff; text-decoration: none;
+                 font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+                 padding: 14px 32px; border-radius: 4px;">
+          Establecer mi contraseña →
+        </a>
+        <p style="font-size: 11px; color: #aaa; margin-top: 12px;">
+          O copia: <a href="${setPwdLink}" style="color:#555; word-break:break-all;">${setPwdLink}</a>
+        </p>
+      </div>
+
+      <p style="font-size: 12px; color: #888; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 12px 16px; margin: 0;">
+        ⏱️ Este enlace caduca en <strong>1 hora</strong>. Si expiró, pide al administrador que te envíe uno nuevo desde el panel de accesos.
+      </p>
+
+      ${taneFooter}
+    </div>
+  `,
+
   // ALERTA: límite de reservas superado (para superadmin)
   alertaLimiteSuperado: (restaurante, plan, reservasMes, limite, upgradeUrl) => `
     <div style="${baseStyle}">

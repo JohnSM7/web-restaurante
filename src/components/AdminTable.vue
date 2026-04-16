@@ -91,6 +91,13 @@
           <span :class="['status-dot', `status-dot--${status}`]"></span>
           <span class="status-label">{{ statusMsg }}</span>
         </div>
+        <button @click="requestOwnPasswordReset" class="change-pwd-btn"
+          :disabled="ownPwdReset.loading">
+          <span v-if="ownPwdReset.loading">Enviando…</span>
+          <span v-else-if="ownPwdReset.sent" style="color:#22c55e;">✓ Email enviado</span>
+          <span v-else-if="ownPwdReset.error" style="color:#ef4444;">Error, reintentar</span>
+          <span v-else>Cambiar contraseña</span>
+        </button>
         <button @click="logout" class="logout-btn">Cerrar sesión</button>
       </div>
     </aside>
@@ -834,12 +841,12 @@
         <!-- Result: success (new user) -->
         <div v-if="addUserModal.result?.success && addUserModal.result?.isNewUser" class="add-user-success">
           <p class="add-user-success-title">✓ Cuenta creada</p>
-          <p class="add-user-success-desc">Comparte estas credenciales con el usuario:</p>
+          <p class="add-user-success-desc">Se ha enviado un email de activación a:</p>
           <div class="credentials-box">
             <p><strong>Email:</strong> {{ addUserModal.email }}</p>
-            <p><strong>Contraseña temporal:</strong> <code>{{ addUserModal.result.password }}</code></p>
+            <p><strong>Rol:</strong> <code>{{ addUserModal.role }}</code></p>
           </div>
-          <p class="add-user-hint">El usuario puede iniciar sesión con estas credenciales y cambiar su contraseña desde Firebase.</p>
+          <p class="add-user-hint">El usuario recibirá un enlace para establecer su propia contraseña. El enlace caduca en 1 hora — si no lo usa a tiempo, puedes reenviar un nuevo enlace desde el botón 🔒 en la sección Accesos.</p>
           <div class="modal-footer">
             <button @click="closeAddUserModal" class="btn-primary-sm">Cerrar</button>
           </div>
@@ -970,7 +977,8 @@ const restaurantUsers   = ref([]);
 const loadingUsers      = ref(false);
 const copiedUrl         = ref('');
 const addUserModal      = ref({ show: false, email: '', role: 'admin', saving: false, result: null });
-const resettingPwd = reactive({}); // uid → 'sending' | 'done' | 'error'
+const resettingPwd  = reactive({}); // uid → 'sending' | 'done' | 'error'
+const ownPwdReset   = ref({ loading: false, sent: false, error: false });
 
 // ─── Filters ─────────────────────────────────────────
 const filterDate    = ref('');   // empty = todas las fechas
@@ -1577,6 +1585,23 @@ const resetPassword = async (u) => {
 const closeAddUserModal = () => {
   addUserModal.value = { show: false, email: '', role: 'admin', saving: false, result: null };
 };
+
+// ─── Password reset (own account) ────────────────────
+const requestOwnPasswordReset = async () => {
+  if (!user.value?.uid) return;
+  ownPwdReset.value = { loading: true, sent: false, error: false };
+  try {
+    const fn = httpsCallable(fns, 'resetStaffPassword');
+    await fn({ uid: user.value.uid });
+    ownPwdReset.value = { loading: false, sent: true, error: false };
+    // Reset label after 5 s
+    setTimeout(() => { ownPwdReset.value = { loading: false, sent: false, error: false }; }, 5000);
+  } catch (e) {
+    console.error('[requestOwnPasswordReset]', e);
+    ownPwdReset.value = { loading: false, sent: false, error: true };
+    setTimeout(() => { ownPwdReset.value = { loading: false, sent: false, error: false }; }, 4000);
+  }
+};
 </script>
 
 <style>
@@ -1744,6 +1769,16 @@ const closeAddUserModal = () => {
 .status-dot--connecting { background: #f59e0b; }
 .status-dot--error { background: #ef4444; }
 .status-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.15em; color: #555; }
+.change-pwd-btn {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: none;
+  color: #555; font-size: 0.65rem; font-weight: 600;
+  letter-spacing: 0.06em; padding: 0.375rem 0;
+  margin-bottom: 0.625rem; cursor: pointer;
+  transition: color 0.2s;
+}
+.change-pwd-btn:hover:not(:disabled) { color: #fff; }
+.change-pwd-btn:disabled { cursor: default; }
 .logout-btn {
   background: transparent; border: 1px solid #1f1f1f;
   color: #555; font-size: 0.65rem; font-weight: 700;
