@@ -17,7 +17,9 @@
         <h1>TANE</h1>
         <p>BOOKING SYSTEM</p>
       </header>
-      <form @submit.prevent="login" class="login-form" novalidate>
+
+      <!-- ── Modo: iniciar sesión ── -->
+      <form v-if="!forgotMode" @submit.prevent="login" class="login-form" novalidate>
         <div class="field">
           <label for="login-email">Email</label>
           <input id="login-email" v-model="loginEmail" type="email" required
@@ -33,7 +35,49 @@
           <span v-if="loggingIn" class="btn-spinner"></span>
           {{ loggingIn ? 'ENTRANDO…' : 'INICIAR SESIÓN' }}
         </button>
+        <button type="button" @click="forgotMode = true; forgotEmail = loginEmail; forgotSent = false; forgotError = ''" class="forgot-link">
+          ¿Olvidaste tu contraseña?
+        </button>
       </form>
+
+      <!-- ── Modo: recuperar contraseña ── -->
+      <div v-else class="login-form">
+        <!-- Éxito -->
+        <div v-if="forgotSent" class="forgot-success">
+          <p class="forgot-success-icon">✉️</p>
+          <p class="forgot-success-title">Email enviado</p>
+          <p class="forgot-success-desc">
+            Si <strong>{{ forgotEmail }}</strong> tiene una cuenta activa, recibirás un enlace para restablecer tu contraseña en unos minutos.
+          </p>
+          <button @click="forgotMode = false; forgotSent = false" class="login-submit" style="margin-top:0.5rem">
+            Volver al inicio de sesión
+          </button>
+        </div>
+
+        <!-- Formulario -->
+        <template v-else>
+          <div>
+            <p class="forgot-title">Recuperar contraseña</p>
+            <p class="forgot-desc">Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.</p>
+          </div>
+          <div class="field">
+            <label for="forgot-email">Email</label>
+            <input id="forgot-email" v-model="forgotEmail" type="email" required
+              autocomplete="email" placeholder="admin@empresa.com"
+              :class="forgotError ? 'has-error' : ''"
+              @keyup.enter="sendForgotPassword">
+          </div>
+          <div v-if="forgotError" class="login-error-msg" role="alert">{{ forgotError }}</div>
+          <button @click="sendForgotPassword" :disabled="forgotSending || !forgotEmail.trim()" class="login-submit">
+            <span v-if="forgotSending" class="btn-spinner"></span>
+            {{ forgotSending ? 'ENVIANDO…' : 'ENVIAR ENLACE' }}
+          </button>
+          <button type="button" @click="forgotMode = false; forgotError = ''" class="forgot-link">
+            ← Volver al inicio de sesión
+          </button>
+        </template>
+      </div>
+
     </div>
   </div>
 
@@ -945,7 +989,7 @@ import {
   onSnapshot, updateDoc, doc, deleteDoc,
   setDoc, addDoc, getDoc, getDocs, getCountFromServer, serverTimestamp
 } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from 'firebase/auth';
 import { db, auth, fns } from '../lib/firebase';
 import { httpsCallable } from 'firebase/functions';
 import { findBestTable, getTurnTime, timeToMinutes } from '../lib/reservationUtils.ts';
@@ -960,6 +1004,13 @@ const loggingIn     = ref(false);
 const loginEmail    = ref('');
 const loginPw       = ref('');
 const loginError    = ref('');
+
+// ─── Forgot password ─────────────────────────────────
+const forgotMode    = ref(false);   // toggle login ↔ recuperar contraseña
+const forgotEmail   = ref('');
+const forgotSending = ref(false);
+const forgotSent    = ref(false);
+const forgotError   = ref('');
 
 // ─── UI State ───────────────────────────────────────
 const isSuperAdmin      = ref(false);
@@ -1307,6 +1358,32 @@ const login = async () => {
 };
 
 const logout = () => signOut(auth);
+
+const sendForgotPassword = async () => {
+  const email = forgotEmail.value.trim();
+  if (!email) return;
+  forgotSending.value = true;
+  forgotError.value   = '';
+  try {
+    await sendPasswordResetEmail(auth, email, {
+      url: `${window.location.origin}/admin/dashboard`,
+    });
+    forgotSent.value = true;
+  } catch (e) {
+    // Por seguridad no revelamos si el email existe o no
+    // Solo mostramos error en casos técnicos (email mal formado, etc.)
+    if (e.code === 'auth/invalid-email') {
+      forgotError.value = 'El formato del email no es válido.';
+    } else if (e.code === 'auth/too-many-requests') {
+      forgotError.value = 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.';
+    } else {
+      // Para user-not-found también mostramos éxito (no revelar si existe)
+      forgotSent.value = true;
+    }
+  } finally {
+    forgotSending.value = false;
+  }
+};
 
 // ─── Reservation actions ──────────────────────────────
 const changeStatus = async (id, newStatus) => {
@@ -1743,6 +1820,19 @@ const requestOwnPasswordReset = async () => {
   border-radius: 4px; transition: opacity 0.2s;
 }
 .login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.forgot-link {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.7rem; color: #888; text-align: center;
+  padding: 0; text-decoration: underline; text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+.forgot-link:hover { color: #000; }
+.forgot-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.375rem; }
+.forgot-desc  { font-size: 0.75rem; color: #666; margin: 0; line-height: 1.5; }
+.forgot-success { text-align: center; display: flex; flex-direction: column; gap: 0.75rem; align-items: center; }
+.forgot-success-icon  { font-size: 2.5rem; margin: 0; line-height: 1; }
+.forgot-success-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.forgot-success-desc  { font-size: 0.78rem; color: #555; margin: 0; line-height: 1.6; }
 .btn-spinner {
   width: 14px; height: 14px;
   border: 2px solid rgba(255,255,255,0.3);
