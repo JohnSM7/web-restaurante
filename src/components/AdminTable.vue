@@ -975,7 +975,8 @@ const restaurants       = ref([]);
 const reservas          = ref([]);
 const mesas             = ref([]);
 const selectedRestaurantId = ref('');
-let unsubs = [];
+let unsubs    = [];   // listeners de datos (reservas, mesas, restaurants) — se limpian en syncData
+let unsubAuth = null; // listener de auth — NUNCA se limpia en syncData, solo en onUnmounted
 
 // ─── Modals ──────────────────────────────────────────
 const showCreateModal   = ref(false);
@@ -1239,7 +1240,7 @@ const syncRestaurants = () => {
 
 // ─── Auth lifecycle ───────────────────────────────────
 onMounted(() => {
-  const unsubAuth = onAuthStateChanged(auth, async (u) => {
+  unsubAuth = onAuthStateChanged(auth, async (u) => {
     user.value = u;
     if (u) {
       const profileSnap = await getDoc(doc(db, 'users', u.uid));
@@ -1264,10 +1265,13 @@ onMounted(() => {
     }
     checkingAuth.value = false;
   });
-  unsubs.push(unsubAuth);
+  // unsubAuth se guarda aparte — syncData limpia `unsubs` pero NO debe tocar el listener de auth
 });
 
-onUnmounted(() => unsubs.forEach(u => u()));
+onUnmounted(() => {
+  unsubs.forEach(u => u());
+  if (unsubAuth) unsubAuth();
+});
 
 // ─── Navigation ──────────────────────────────────────
 const STAFF_ALLOWED_VIEWS = ['reservas'];
