@@ -202,23 +202,22 @@ exports.createStaffUser = onCall(async (request) => {
     { merge: true }
   );
 
-  if (isNewUser) {
-    try {
-      const restaurante = await getRestauranteData(restaurant_id);
-      // Generate a set-password link (same mechanism as reset, first-time setup)
-      const setPwdLink = await auth.generatePasswordResetLink(email, {
-        url: `${APP_URL}/admin/dashboard`,
-      });
-      await resend.emails.send({
-        from:    FROM_EMAIL,
-        to:      [email],
-        subject: `Activa tu acceso a ${restaurante.nombre || "el panel de gestión"} — Tane Booking`,
-        html:    templates.activacionCuenta(email, setPwdLink, APP_URL + "/admin/dashboard", restaurante, role),
-      });
-      console.log(`[createStaffUser] activation email → ${email}`);
-    } catch (e) {
-      console.error("[createStaffUser] email failed:", e);
-    }
+  // Enviar email de activación/acceso siempre — tanto a nuevos como a usuarios existentes
+  // cuyo rol/restaurante acaba de ser actualizado.
+  try {
+    const restaurante = await getRestauranteData(restaurant_id);
+    const setPwdLink  = await auth.generatePasswordResetLink(email, {
+      url: `${APP_URL}/admin/dashboard`,
+    });
+    await resend.emails.send({
+      from:    FROM_EMAIL,
+      to:      [email],
+      subject: `Acceso a ${restaurante.nombre || "el panel de gestión"} — Tane Booking`,
+      html:    templates.activacionCuenta(email, setPwdLink, APP_URL + "/admin/dashboard", restaurante, role),
+    });
+    console.log(`[createStaffUser] activation email → ${email} (isNewUser=${isNewUser})`);
+  } catch (e) {
+    console.error("[createStaffUser] email failed:", e);
   }
 
   return { uid, email, role, isNewUser };
