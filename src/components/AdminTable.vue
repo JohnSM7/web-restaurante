@@ -1327,7 +1327,21 @@ const saveNota = async (id) => {
 
 const toggleMesaEstado = async (mesa) => {
   const cycle = { libre: 'reservada', reservada: 'ocupada', ocupada: 'libre' };
-  await updateDoc(doc(db, 'mesas', mesa.id), { estado: cycle[mesa.estado] ?? 'libre' });
+  const estadoActual = mesa.estado ?? 'libre';
+  const nuevoEstado  = cycle[estadoActual] ?? 'libre';
+
+  // Actualización optimista — el UI responde al instante sin esperar al onSnapshot
+  const idx = mesas.value.findIndex(m => m.id === mesa.id);
+  if (idx !== -1) mesas.value[idx] = { ...mesas.value[idx], estado: nuevoEstado };
+
+  try {
+    await updateDoc(doc(db, 'mesas', mesa.id), { estado: nuevoEstado });
+  } catch (e) {
+    console.error('[toggleMesaEstado] Error al actualizar mesa:', e.code, e.message);
+    // Revertir el cambio optimista si Firestore falla
+    if (idx !== -1) mesas.value[idx] = { ...mesas.value[idx], estado: estadoActual };
+    alert(`No se pudo cambiar el estado: ${e.message}`);
+  }
 };
 
 // ─── Mapa editor actions ─────────────────────────────

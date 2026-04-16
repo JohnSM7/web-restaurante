@@ -39,8 +39,15 @@ service cloud.firestore {
 
     match /mesas/{mesaId} {
       allow read: if true;
-      // Solo admin (no staff) puede añadir, mover o borrar mesas
-      allow write: if isRestaurantAdmin(request.resource.data.restaurant_id || resource.data.restaurant_id);
+      // Crear y borrar mesas: solo admin o superadmin
+      allow create: if isRestaurantAdmin(request.resource.data.restaurant_id);
+      allow delete: if isRestaurantAdmin(resource.data.restaurant_id);
+      // Actualizar mesas:
+      //   - Admin puede cambiar cualquier campo (nombre, posición, capacidad, estado)
+      //   - Staff puede cambiar SOLO el campo 'estado' (operativo: libre/reservada/ocupada)
+      allow update: if isRestaurantAdmin(resource.data.restaurant_id)
+        || (isRestaurantMember(resource.data.restaurant_id)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
     }
 
     match /restaurants/{restaurantId} {
