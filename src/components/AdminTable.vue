@@ -2470,8 +2470,8 @@ const requestOwnPasswordReset = async () => {
   font-size: 2rem; font-weight: 300; letter-spacing: 0.04em;
   margin: 0 0 0.5rem; line-height: 1.1;
 }
-.prof-hero-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin: 0; }
-.prof-id-code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 0.15em 0.5em; border-radius: 4px; font-size: 0.85em; color: rgba(255,255,255,0.6); }
+.prof-hero-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin: 0; max-width: 100%; overflow: hidden; }
+.prof-id-code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 0.15em 0.5em; border-radius: 4px; font-size: 0.85em; color: rgba(255,255,255,0.6); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
 .prof-meta-sep { color: rgba(255,255,255,0.25); }
 /* Stats strip at bottom of hero */
 .prof-stats {
@@ -2494,11 +2494,11 @@ const requestOwnPasswordReset = async () => {
 .prof-main { display: grid; grid-template-columns: 1fr 380px; gap: 1.25rem; align-items: start; }
 @media (max-width: 1050px) { .prof-main { grid-template-columns: 1fr; } }
 @media (max-width: 900px)  { .prof-main { grid-template-columns: 1fr; } }
-.prof-col-left  { display: flex; flex-direction: column; gap: 1.25rem; }
-.prof-col-right { display: flex; flex-direction: column; gap: 1.25rem; }
+.prof-col-left  { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; max-width: 100%; }
+.prof-col-right { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; max-width: 100%; }
 
 /* Cards */
-.prof-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 1.375rem; overflow: hidden; }
+.prof-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 1.375rem; overflow: hidden; width: 100%; box-sizing: border-box; }
 .prof-card-title {
   font-size: 0.65rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
   margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;
@@ -2656,25 +2656,42 @@ const requestOwnPasswordReset = async () => {
 
 /* ── Responsive overrides — must be LAST so they win over base rules ── */
 @media (max-width: 900px) {
+  /* Columnas de perfil: una sola columna, sin desbordamiento */
+  .prof-main      { grid-template-columns: 1fr !important; }
+  .prof-col-left,
+  .prof-col-right { min-width: 0; max-width: 100%; width: 100%; }
+  .prof-card      { width: 100%; max-width: 100%; box-sizing: border-box; }
+  /* Hero */
   .prof-hero-top  { flex-direction: column; gap: 0.75rem; }
   .prof-hero-name { font-size: 1.5rem; }
+  /* Stats 2×2 */
   .prof-stats     { flex-wrap: wrap; }
   .prof-stat      { flex: 1 1 50%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .prof-stat:nth-child(odd) { border-right: 1px solid rgba(255,255,255,0.08); }
   .prof-stat:last-child,
   .prof-stat:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+  /* Horarios y danger */
   .prof-horarios  { grid-template-columns: 1fr; }
   .danger-inner   { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  /* Formulario: filas de campos en columna desde 900px en perfil */
+  .profile-form .field-row { flex-direction: column; }
 }
 @media (max-width: 600px) {
   .prof-hero      { padding: 1.25rem 1.25rem 0; border-radius: 10px; }
   .prof-hero-name { font-size: 1.375rem; }
   .prof-stats     { margin: 0 -1.25rem; }
+  /* Padding reducido en tarjetas */
+  .prof-card      { padding: 1rem; }
 }
 @media (max-width: 480px) {
+  /* Cards: padding mínimo */
+  .prof-card      { padding: 0.875rem; }
+  /* URLs: stack vertical */
   .url-item  { flex-direction: column; align-items: stretch; gap: 0.5rem; }
   .url-info  { width: 100%; }
   .url-value { white-space: normal; word-break: break-all; }
   .copy-btn  { width: 100%; text-align: center; }
+  /* Tiempo: aún en fila pero reducido */
+  .prof-time-input { font-size: 0.75rem; padding: 0.35rem 0.4rem; }
 }
 </style>
