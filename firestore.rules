@@ -15,10 +15,18 @@ service cloud.firestore {
          (getUserData() != null && getUserData().role == 'superadmin'));
     }
 
-    // Verificar si el usuario tiene permiso sobre este restaurante
-    function isRestaurantOwner(restaurantId) {
-      return request.auth != null && 
-        (isSuperAdmin() || (getUserData() != null && getUserData().restaurant_id == restaurantId));
+    // Verificar si el usuario tiene permiso sobre este restaurante (admin o superadmin, no staff)
+    function isRestaurantAdmin(restaurantId) {
+      let u = getUserData();
+      return request.auth != null &&
+        (isSuperAdmin() || (u != null && u.restaurant_id == restaurantId && u.role == 'admin'));
+    }
+
+    // Staff también puede gestionar reservas (confirmar, cancelar, notas) pero no mesas ni perfil
+    function isRestaurantMember(restaurantId) {
+      let u = getUserData();
+      return request.auth != null &&
+        (isSuperAdmin() || (u != null && u.restaurant_id == restaurantId && u.role in ['admin', 'staff']));
     }
 
     match /reservas/{reservaId} {
@@ -26,12 +34,13 @@ service cloud.firestore {
       allow create: if request.resource.data.restaurant_id != null;
       // Public read needed for slot availability on the booking page
       allow read: if true;
-      allow update, delete: if isRestaurantOwner(resource.data.restaurant_id);
+      allow update, delete: if isRestaurantMember(resource.data.restaurant_id);
     }
 
     match /mesas/{mesaId} {
       allow read: if true;
-      allow write: if isRestaurantOwner(request.resource.data.restaurant_id || resource.data.restaurant_id);
+      // Solo admin (no staff) puede añadir, mover o borrar mesas
+      allow write: if isRestaurantAdmin(request.resource.data.restaurant_id || resource.data.restaurant_id);
     }
 
     match /restaurants/{restaurantId} {

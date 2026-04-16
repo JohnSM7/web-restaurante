@@ -199,8 +199,9 @@ const props = defineProps({
 // SSG pre-renders with the default prop, but at runtime the URL ?id= overrides it.
 // URL format: /booking?id=restaurante-abc  or  /booking-widget?id=restaurante-abc
 // Start with the prop value; overridden at runtime by ?id= URL param
-const resolvedId     = ref(props.restaurantId);
-const restaurantName = ref('');
+const resolvedId          = ref(props.restaurantId);
+const restaurantName      = ref('');
+const modoConfirmacion    = ref('auto'); // 'auto' | 'manual'
 
 // ─── Default schedule config (overridden by Firestore per restaurant) ────────
 const DEFAULT_HORARIOS = {
@@ -249,6 +250,7 @@ onMounted(async () => {
           intervalo: data.horarios.intervalo ?? DEFAULT_HORARIOS.intervalo,
         };
       }
+      modoConfirmacion.value = data.modo_confirmacion ?? 'auto';
     } else {
       restaurantName.value = resolvedId.value.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
     }
@@ -416,7 +418,8 @@ const submitBooking = async () => {
 
     // ── Best-fit table assignment ──────────────────────
     // Find the smallest available table for this slot
-    const bestTable = findBestTable(mesas.value, pax, form.value.hora, occupancyToday.value);
+    const autoMode  = modoConfirmacion.value === 'auto';
+    const bestTable = autoMode ? findBestTable(mesas.value, pax, form.value.hora, occupancyToday.value) : null;
 
     await addDoc(collection(db, 'reservas'), {
       restaurant_id:     resolvedId.value,
@@ -428,7 +431,7 @@ const submitBooking = async () => {
       comensales:        pax,
       comentarios:       form.value.comentarios || '',
       marketing_consent: Boolean(form.value.marketing_consent),
-      // Auto-confirm when table found; pending only if restaurant has no tables configured
+      // Auto-confirm only when mode is 'auto' and a table is available
       estado:            bestTable ? 'confirmada' : 'pendiente',
       mesa_id:           bestTable?.id ?? null,
       duracion_min:      duracion,

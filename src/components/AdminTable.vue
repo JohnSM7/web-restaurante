@@ -45,7 +45,7 @@
       <div class="sidebar-head">
         <div class="sidebar-logo">
           <span class="logo-word">TANE</span>
-          <span class="logo-tag">{{ isSuperAdmin ? 'SUPREME' : 'ADMIN' }}</span>
+          <span class="logo-tag">{{ isSuperAdmin ? 'SUPREME' : isStaff ? 'STAFF' : 'ADMIN' }}</span>
         </div>
         <button class="sidebar-close" @click="sidebarOpen = false" aria-label="Cerrar menú">✕</button>
       </div>
@@ -72,12 +72,12 @@
             RESERVAS
             <span v-if="pendingCount > 0" class="nav-badge">{{ pendingCount }}</span>
           </button>
-          <button @click="nav('customers')"
+          <button v-if="!isStaff" @click="nav('customers')"
             :class="['nav-btn', currentView === 'customers' && 'nav-btn--active']">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             CRM CLIENTES
           </button>
-          <button @click="nav('mapa')"
+          <button v-if="!isStaff" @click="nav('mapa')"
             :class="['nav-btn', currentView === 'mapa' && 'nav-btn--active']">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
             MAPA SALA
@@ -318,7 +318,7 @@
               <span class="legend-dot legend-dot--reservada">Reservada</span>
               <span class="legend-dot legend-dot--ocupada">Ocupada</span>
             </div>
-            <button v-if="!editingMapa" @click="editingMapa = true" class="btn-outline-sm">
+            <button v-if="!editingMapa && !isStaff" @click="editingMapa = true" class="btn-outline-sm">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               EDITAR MAPA
             </button>
@@ -416,93 +416,140 @@
       </section>
 
       <!-- ── VIEW: RESTAURANT PROFILE ── -->
-      <section v-else-if="currentView === 'restaurant-profile' && profileRestaurant" class="view-section">
+      <section v-else-if="currentView === 'restaurant-profile' && profileRestaurant" class="view-section prof-view">
 
-        <!-- Header with restaurant name and quick actions -->
-        <div class="view-header">
-          <div>
-            <h3 class="view-heading">{{ profileRestaurant.nombre }}</h3>
-            <p class="view-sub">ID: <code class="profile-id">{{ profileRestaurant.id }}</code></p>
+        <!-- ── Hero ── -->
+        <div class="prof-hero">
+          <div class="prof-hero-body">
+            <div class="prof-hero-top">
+              <div class="prof-hero-badges">
+                <span :class="['prof-status-pill', profileForm.activo ? 'prof-status-pill--on' : 'prof-status-pill--off']">
+                  <span class="prof-status-dot"></span>
+                  {{ profileForm.activo ? 'Activo' : 'Inactivo' }}
+                </span>
+                <span :class="['prof-plan-pill', `prof-plan-pill--${profileForm.plan}`]">{{ profileForm.plan }}</span>
+              </div>
+              <button @click="selectAndGo(profileRestaurant.id)" class="btn-outline-sm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+                VER RESERVAS
+              </button>
+            </div>
+            <h2 class="prof-hero-name">{{ profileRestaurant.nombre }}</h2>
+            <p class="prof-hero-meta">
+              <code class="prof-id-code">{{ profileRestaurant.id }}</code>
+              <span v-if="profileRestaurant.direccion" class="prof-meta-sep">·</span>
+              <span v-if="profileRestaurant.direccion">{{ profileRestaurant.direccion }}</span>
+            </p>
           </div>
-          <div style="display:flex; gap:0.5rem">
-            <button @click="selectAndGo(profileRestaurant.id)" class="btn-outline-sm">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
-              VER RESERVAS
-            </button>
+
+          <!-- Stats strip inside hero -->
+          <div class="prof-stats">
+            <div class="prof-stat">
+              <span class="prof-stat-num">{{ profileStats.reservas ?? '…' }}</span>
+              <span class="prof-stat-lbl">Reservas</span>
+            </div>
+            <div class="prof-stat">
+              <span class="prof-stat-num">{{ profileStats.mesas ?? '…' }}</span>
+              <span class="prof-stat-lbl">Mesas</span>
+            </div>
+            <div class="prof-stat">
+              <span class="prof-stat-num">{{ restaurantUsers.length }}</span>
+              <span class="prof-stat-lbl">Usuarios</span>
+            </div>
+            <div class="prof-stat" v-if="profileRestaurant.creado_en">
+              <span class="prof-stat-num prof-stat-num--sm">{{ formatDate(profileRestaurant.creado_en) }}</span>
+              <span class="prof-stat-lbl">Alta</span>
+            </div>
           </div>
         </div>
 
-        <div class="profile-grid">
+        <!-- ── Main 2-col layout ── -->
+        <div class="prof-main">
 
-          <!-- LEFT: Datos del restaurante (editable) -->
-          <div class="profile-section">
-            <h4 class="profile-section-title">Datos del restaurante</h4>
-            <div class="profile-form">
-              <div class="field"><label>Nombre</label><input v-model="profileForm.nombre" type="text" placeholder="Nombre del restaurante"></div>
-              <div class="field"><label>Dirección</label><input v-model="profileForm.direccion" type="text" placeholder="Calle, número, ciudad"></div>
-              <div class="field-row">
-                <div class="field"><label>Teléfono</label><input v-model="profileForm.telefono" type="tel" placeholder="+34 600 000 000"></div>
-                <div class="field"><label>Email contacto</label><input v-model="profileForm.email" type="email" placeholder="info@restaurante.com"></div>
-              </div>
-              <div class="field"><label>Sitio web</label><input v-model="profileForm.web" type="url" placeholder="https://restaurante.com"></div>
-              <div class="field-row">
+          <!-- LEFT: forms -->
+          <div class="prof-col-left">
+
+            <!-- Datos del restaurante -->
+            <div class="prof-card">
+              <h4 class="prof-card-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Datos del restaurante
+              </h4>
+              <div class="profile-form">
+                <div class="field"><label>Nombre</label><input v-model="profileForm.nombre" type="text" placeholder="Nombre del restaurante"></div>
+                <div class="field"><label>Dirección</label><input v-model="profileForm.direccion" type="text" placeholder="Calle, número, ciudad"></div>
+                <div class="field-row">
+                  <div class="field"><label>Teléfono</label><input v-model="profileForm.telefono" type="tel" placeholder="+34 600 000 000"></div>
+                  <div class="field"><label>Email contacto</label><input v-model="profileForm.email" type="email" placeholder="info@restaurante.com"></div>
+                </div>
+                <div class="field"><label>Sitio web</label><input v-model="profileForm.web" type="url" placeholder="https://restaurante.com"></div>
+                <div class="field-row">
+                  <div class="field">
+                    <label>Plan</label>
+                    <select v-model="profileForm.plan" class="field-select">
+                      <option value="trial">Trial (gratis)</option>
+                      <option value="basic">Basic</option>
+                      <option value="pro">Pro</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Estado</label>
+                    <label class="toggle-label">
+                      <input type="checkbox" v-model="profileForm.activo" class="toggle-input">
+                      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                      <span class="toggle-text">{{ profileForm.activo ? 'Activo' : 'Inactivo' }}</span>
+                    </label>
+                  </div>
+                </div>
                 <div class="field">
-                  <label>Plan</label>
-                  <select v-model="profileForm.plan" class="field-select">
-                    <option value="trial">Trial (gratis)</option>
-                    <option value="basic">Basic</option>
-                    <option value="pro">Pro</option>
+                  <label>Confirmación de reservas</label>
+                  <select v-model="profileForm.modo_confirmacion" class="field-select">
+                    <option value="auto">Automática — confirma si hay mesa disponible</option>
+                    <option value="manual">Manual — el admin confirma siempre</option>
                   </select>
                 </div>
-                <div class="field">
-                  <label>Estado</label>
-                  <label class="toggle-label">
-                    <input type="checkbox" v-model="profileForm.activo" class="toggle-input">
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                    <span class="toggle-text">{{ profileForm.activo ? 'Activo' : 'Inactivo' }}</span>
-                  </label>
+                <div class="prof-form-footer">
+                  <button @click="saveProfile" :disabled="profileSaving" class="btn-primary-sm">
+                    <span v-if="profileSaving">Guardando…</span>
+                    <span v-else>Guardar cambios</span>
+                  </button>
+                  <p v-if="profileSaved" class="profile-saved-msg">✓ Guardado</p>
                 </div>
               </div>
-              <button @click="saveProfile" :disabled="profileSaving" class="btn-primary-sm" style="margin-top:0.5rem; align-self:flex-start">
-                <span v-if="profileSaving">Guardando…</span>
-                <span v-else>Guardar cambios</span>
-              </button>
-              <p v-if="profileSaved" class="profile-saved-msg">✓ Guardado</p>
             </div>
-          </div>
 
-          <!-- CENTER: Configuración de horarios -->
-          <div class="profile-section">
-            <h4 class="profile-section-title">Horarios de reservas</h4>
-            <div class="profile-form">
-              <p class="horarios-hint">Define los turnos disponibles y el intervalo entre franjas. BookingForm lo usará automáticamente.</p>
-              <div class="horarios-block">
-                <span class="horarios-label">Comida</span>
-                <div class="field-row" style="gap:0.75rem; align-items:flex-end">
-                  <div class="field">
-                    <label>Inicio</label>
-                    <input v-model="profileForm.horarios.comida.inicio" type="time" class="field-input-sm">
+            <!-- Horarios -->
+            <div class="prof-card">
+              <h4 class="prof-card-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Horarios de reservas
+              </h4>
+              <p class="horarios-hint" style="margin-bottom:1rem">Los turnos configurados aquí generan automáticamente las franjas horarias del formulario de reservas.</p>
+              <div class="prof-horarios">
+                <div class="prof-turno-card">
+                  <span class="prof-turno-label">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    Comida
+                  </span>
+                  <div class="prof-time-row">
+                    <input v-model="profileForm.horarios.comida.inicio" type="time" class="prof-time-input">
+                    <span class="prof-time-sep">→</span>
+                    <input v-model="profileForm.horarios.comida.fin" type="time" class="prof-time-input">
                   </div>
-                  <div class="field">
-                    <label>Fin</label>
-                    <input v-model="profileForm.horarios.comida.fin" type="time" class="field-input-sm">
+                </div>
+                <div class="prof-turno-card">
+                  <span class="prof-turno-label">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    Cena
+                  </span>
+                  <div class="prof-time-row">
+                    <input v-model="profileForm.horarios.cena.inicio" type="time" class="prof-time-input">
+                    <span class="prof-time-sep">→</span>
+                    <input v-model="profileForm.horarios.cena.fin" type="time" class="prof-time-input">
                   </div>
                 </div>
               </div>
-              <div class="horarios-block">
-                <span class="horarios-label">Cena</span>
-                <div class="field-row" style="gap:0.75rem; align-items:flex-end">
-                  <div class="field">
-                    <label>Inicio</label>
-                    <input v-model="profileForm.horarios.cena.inicio" type="time" class="field-input-sm">
-                  </div>
-                  <div class="field">
-                    <label>Fin</label>
-                    <input v-model="profileForm.horarios.cena.fin" type="time" class="field-input-sm">
-                  </div>
-                </div>
-              </div>
-              <div class="field">
+              <div class="field" style="margin-top:1rem">
                 <label>Intervalo entre franjas</label>
                 <select v-model.number="profileForm.horarios.intervalo" class="field-select">
                   <option :value="15">15 minutos</option>
@@ -510,79 +557,193 @@
                   <option :value="60">60 minutos (cada hora)</option>
                 </select>
               </div>
-              <button @click="saveProfile" :disabled="profileSaving" class="btn-primary-sm" style="margin-top:0.5rem; align-self:flex-start">
-                <span v-if="profileSaving">Guardando…</span>
-                <span v-else>Guardar horarios</span>
-              </button>
-              <p v-if="profileSaved" class="profile-saved-msg">✓ Guardado</p>
+              <div class="prof-form-footer" style="margin-top:1.25rem">
+                <button @click="saveProfile" :disabled="profileSaving" class="btn-primary-sm">
+                  <span v-if="profileSaving">Guardando…</span>
+                  <span v-else>Guardar horarios</span>
+                </button>
+                <p v-if="profileSaved" class="profile-saved-msg">✓ Guardado</p>
+              </div>
             </div>
+
           </div>
 
-          <!-- RIGHT: URLs + Accesos -->
-          <div class="profile-section">
+          <!-- RIGHT: Plan + URLs + Usuarios -->
+          <div class="prof-col-right">
+
+            <!-- ── Plan actual y uso ── -->
+            <div class="prof-card plan-card">
+              <h4 class="prof-card-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Plan actual
+              </h4>
+
+              <div v-if="planUsage" class="plan-body">
+                <!-- Plan badge + precio -->
+                <div class="plan-header-row">
+                  <span :class="['plan-badge', `plan-badge--${planUsage.plan}`]">{{ planUsage.plan }}</span>
+                  <span class="plan-price">
+                    {{ planUsage.plan === 'trial' ? 'Gratis' : planUsage.plan === 'basic' ? '29€/mes' : '59€/mes' }}
+                  </span>
+                </div>
+
+                <!-- Usage bars -->
+                <div class="plan-meters">
+                  <div class="plan-meter">
+                    <div class="plan-meter-labels">
+                      <span>Reservas este mes</span>
+                      <span class="plan-meter-count">
+                        {{ planUsage.uso.reservas_mes }}
+                        <template v-if="planUsage.planData.reservas_mes"> / {{ planUsage.planData.reservas_mes }}</template>
+                        <template v-else> / ∞</template>
+                      </span>
+                    </div>
+                    <div class="plan-meter-bar">
+                      <div class="plan-meter-fill"
+                        :class="{ 'plan-meter-fill--warn': planMeterRatio('reservas') >= 0.8, 'plan-meter-fill--over': planMeterRatio('reservas') > 1 }"
+                        :style="{ width: Math.min(planMeterRatio('reservas') * 100, 100) + '%' }">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="plan-meter">
+                    <div class="plan-meter-labels">
+                      <span>Mesas</span>
+                      <span class="plan-meter-count">
+                        {{ planUsage.uso.mesas }}
+                        <template v-if="planUsage.planData.mesas"> / {{ planUsage.planData.mesas }}</template>
+                        <template v-else> / ∞</template>
+                      </span>
+                    </div>
+                    <div class="plan-meter-bar">
+                      <div class="plan-meter-fill"
+                        :class="{ 'plan-meter-fill--warn': planMeterRatio('mesas') >= 0.8, 'plan-meter-fill--over': planMeterRatio('mesas') > 1 }"
+                        :style="{ width: Math.min(planMeterRatio('mesas') * 100, 100) + '%' }">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="plan-meter">
+                    <div class="plan-meter-labels">
+                      <span>Usuarios</span>
+                      <span class="plan-meter-count">
+                        {{ planUsage.uso.usuarios }}
+                        <template v-if="planUsage.planData.usuarios"> / {{ planUsage.planData.usuarios }}</template>
+                        <template v-else> / ∞</template>
+                      </span>
+                    </div>
+                    <div class="plan-meter-bar">
+                      <div class="plan-meter-fill"
+                        :class="{ 'plan-meter-fill--warn': planMeterRatio('usuarios') >= 0.8, 'plan-meter-fill--over': planMeterRatio('usuarios') > 1 }"
+                        :style="{ width: Math.min(planMeterRatio('usuarios') * 100, 100) + '%' }">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Features list -->
+                <div class="plan-features">
+                  <span :class="['plan-feat', planUsage.planData.emails     ? 'plan-feat--on' : 'plan-feat--off']">Emails al cliente</span>
+                  <span :class="['plan-feat', planUsage.planData.crm        ? 'plan-feat--on' : 'plan-feat--off']">CRM</span>
+                  <span :class="['plan-feat', planUsage.planData.widget     ? 'plan-feat--on' : 'plan-feat--off']">Widget embebible</span>
+                  <span :class="['plan-feat', planUsage.planData.recordatorio ? 'plan-feat--on' : 'plan-feat--off']">Recordatorio 24h</span>
+                </div>
+
+                <!-- Upgrade buttons -->
+                <div v-if="planUsage.plan !== 'pro'" class="plan-upgrade-row">
+                  <button v-if="planUsage.plan === 'trial' || planUsage.plan === 'basic'"
+                    @click="startCheckout('basic')" :disabled="planUpgrading || planUsage.plan === 'basic'"
+                    class="plan-upgrade-btn plan-upgrade-btn--basic">
+                    <span v-if="planUpgrading === 'basic'">Redirigiendo…</span>
+                    <span v-else-if="planUsage.plan === 'basic'">Plan actual</span>
+                    <span v-else>Basic · 29€/mes</span>
+                  </button>
+                  <button @click="startCheckout('pro')" :disabled="planUpgrading"
+                    class="plan-upgrade-btn plan-upgrade-btn--pro">
+                    <span v-if="planUpgrading === 'pro'">Redirigiendo…</span>
+                    <span v-else>Pro · 59€/mes ✦</span>
+                  </button>
+                </div>
+                <p v-else class="plan-pro-msg">Estás en el plan máximo. ¡Gracias!</p>
+              </div>
+
+              <div v-else class="profile-loading">Cargando uso del plan…</div>
+            </div>
 
             <!-- URLs del sistema -->
-            <h4 class="profile-section-title">URLs del sistema</h4>
-            <div class="url-list">
-              <div class="url-item">
-                <div class="url-info">
-                  <span class="url-label">Formulario de reservas</span>
-                  <span class="url-value">/booking?id={{ profileRestaurant.id }}</span>
+            <div class="prof-card">
+              <h4 class="prof-card-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                URLs del sistema
+              </h4>
+              <div class="url-list">
+                <div class="url-item">
+                  <div class="url-info">
+                    <span class="url-label">Formulario de reservas</span>
+                    <code class="url-value">/booking?id={{ profileRestaurant.id }}</code>
+                  </div>
+                  <button @click="copyUrl('booking', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'booking' }">
+                    {{ copiedUrl === 'booking' ? '✓' : 'Copiar' }}
+                  </button>
                 </div>
-                <button @click="copyUrl('booking', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'booking' }">
-                  {{ copiedUrl === 'booking' ? '✓' : 'Copiar' }}
-                </button>
-              </div>
-              <div class="url-item">
-                <div class="url-info">
-                  <span class="url-label">Widget embebible</span>
-                  <span class="url-value">/booking-widget?id={{ profileRestaurant.id }}</span>
+                <div class="url-item">
+                  <div class="url-info">
+                    <span class="url-label">Widget embebible</span>
+                    <code class="url-value">/booking-widget?id={{ profileRestaurant.id }}</code>
+                  </div>
+                  <button @click="copyUrl('widget', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'widget' }">
+                    {{ copiedUrl === 'widget' ? '✓' : 'Copiar' }}
+                  </button>
                 </div>
-                <button @click="copyUrl('widget', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'widget' }">
-                  {{ copiedUrl === 'widget' ? '✓' : 'Copiar' }}
-                </button>
-              </div>
-              <div class="url-item">
-                <div class="url-info">
-                  <span class="url-label">Panel admin restaurante</span>
-                  <span class="url-value">/admin/dashboard?id={{ profileRestaurant.id }}</span>
+                <div class="url-item">
+                  <div class="url-info">
+                    <span class="url-label">Panel admin</span>
+                    <code class="url-value">/admin/dashboard?id={{ profileRestaurant.id }}</code>
+                  </div>
+                  <button @click="copyUrl('admin', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'admin' }">
+                    {{ copiedUrl === 'admin' ? '✓' : 'Copiar' }}
+                  </button>
                 </div>
-                <button @click="copyUrl('admin', profileRestaurant.id)" class="copy-btn" :class="{ 'copy-btn--copied': copiedUrl === 'admin' }">
-                  {{ copiedUrl === 'admin' ? '✓' : 'Copiar' }}
-                </button>
               </div>
             </div>
 
             <!-- Accesos y usuarios -->
-            <h4 class="profile-section-title" style="margin-top:1.5rem">
-              Accesos y usuarios
-              <button @click="addUserModal.show = true" class="add-user-btn">+ Añadir acceso</button>
-            </h4>
-
-            <div v-if="loadingUsers" class="profile-loading">Cargando usuarios…</div>
-            <div v-else-if="restaurantUsers.length === 0" class="profile-empty-users">
-              Sin usuarios asignados. Añade el primer acceso.
-            </div>
-            <div v-else class="users-list">
-              <div v-for="u in restaurantUsers" :key="u.uid" class="user-row">
-                <div class="user-info">
-                  <span class="user-email">{{ u.email }}</span>
-                  <span :class="['user-role-badge', `user-role-badge--${u.role}`]">{{ u.role }}</span>
+            <div class="prof-card">
+              <h4 class="prof-card-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Accesos
+                <button @click="addUserModal.show = true" class="add-user-btn">+ Añadir</button>
+              </h4>
+              <div v-if="loadingUsers" class="profile-loading">Cargando…</div>
+              <div v-else-if="restaurantUsers.length === 0" class="profile-empty-users">
+                Sin usuarios asignados aún.
+              </div>
+              <div v-else class="users-list">
+                <div v-for="u in restaurantUsers" :key="u.uid" class="user-row">
+                  <div class="user-avatar">{{ u.email[0].toUpperCase() }}</div>
+                  <div class="user-info">
+                    <span class="user-email">{{ u.email }}</span>
+                    <span :class="['user-role-badge', `user-role-badge--${u.role}`]">{{ u.role }}</span>
+                  </div>
+                  <button @click="revokeAccess(u)" class="revoke-btn" title="Revocar acceso">✕</button>
                 </div>
-                <button @click="revokeAccess(u)" class="revoke-btn" title="Revocar acceso">✕</button>
               </div>
             </div>
 
           </div>
         </div>
 
-        <!-- Danger zone -->
+        <!-- ── Danger zone ── -->
         <div class="danger-zone">
-          <h4 class="danger-title">Zona de peligro</h4>
-          <p class="danger-desc">Dar de baja eliminará el perfil del restaurante de la plataforma. Las reservas existentes NO se borrarán.</p>
-          <button @click="openDeleteModal(profileRestaurant.id, profileRestaurant.nombre)" class="btn-danger-sm">
-            Dar de baja {{ profileRestaurant.nombre }}
-          </button>
+          <div class="danger-inner">
+            <div>
+              <h4 class="danger-title">Zona de peligro</h4>
+              <p class="danger-desc">Dar de baja eliminará el perfil del restaurante de la plataforma. Las reservas existentes NO se borrarán.</p>
+            </div>
+            <button @click="openDeleteModal(profileRestaurant.id, profileRestaurant.nombre)" class="btn-danger-sm">
+              Dar de baja
+            </button>
+          </div>
         </div>
 
       </section>
@@ -656,15 +817,29 @@
         <h3 class="modal-title">Añadir acceso</h3>
         <p class="modal-desc">Crea una cuenta para que el restaurante gestione sus propias reservas.</p>
 
-        <!-- Result: success -->
-        <div v-if="addUserModal.result?.success" class="add-user-success">
+        <!-- Result: success (new user) -->
+        <div v-if="addUserModal.result?.success && addUserModal.result?.isNewUser" class="add-user-success">
           <p class="add-user-success-title">✓ Cuenta creada</p>
-          <p class="add-user-success-desc">Comparte estas credenciales con el cliente:</p>
+          <p class="add-user-success-desc">Comparte estas credenciales con el usuario:</p>
           <div class="credentials-box">
             <p><strong>Email:</strong> {{ addUserModal.email }}</p>
             <p><strong>Contraseña temporal:</strong> <code>{{ addUserModal.result.password }}</code></p>
           </div>
-          <p class="add-user-hint">El usuario debe cambiar la contraseña en su primer acceso.</p>
+          <p class="add-user-hint">El usuario puede iniciar sesión con estas credenciales y cambiar su contraseña desde Firebase.</p>
+          <div class="modal-footer">
+            <button @click="closeAddUserModal" class="btn-primary-sm">Cerrar</button>
+          </div>
+        </div>
+
+        <!-- Result: success (existing user, role updated) -->
+        <div v-else-if="addUserModal.result?.success && !addUserModal.result?.isNewUser" class="add-user-success">
+          <p class="add-user-success-title">✓ Acceso actualizado</p>
+          <p class="add-user-success-desc">Este email ya tenía cuenta. Se ha actualizado su rol y restaurante asignado.</p>
+          <div class="credentials-box">
+            <p><strong>Email:</strong> {{ addUserModal.email }}</p>
+            <p><strong>Nuevo rol:</strong> <code>{{ addUserModal.role }}</code></p>
+          </div>
+          <p class="add-user-hint">El usuario puede acceder con su contraseña existente.</p>
           <div class="modal-footer">
             <button @click="closeAddUserModal" class="btn-primary-sm">Cerrar</button>
           </div>
@@ -729,10 +904,11 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import {
   collection, query, where, orderBy,
   onSnapshot, updateDoc, doc, deleteDoc,
-  setDoc, addDoc, getDoc, getDocs, serverTimestamp
+  setDoc, addDoc, getDoc, getDocs, getCountFromServer, serverTimestamp
 } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+import { db, auth, fns } from '../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
 import { findBestTable, getTurnTime, timeToMinutes } from '../lib/reservationUtils.ts';
 
 defineProps({ restaurantId: { type: String, default: 'the-editorial' } });
@@ -748,6 +924,7 @@ const loginError    = ref('');
 
 // ─── UI State ───────────────────────────────────────
 const isSuperAdmin      = ref(false);
+const isStaff           = computed(() => !isSuperAdmin.value && userProfile.value?.role === 'staff');
 const sidebarOpen       = ref(false);
 const currentView       = ref('reservas');
 const loading           = ref(true);
@@ -772,6 +949,9 @@ const profileRestaurant = ref(null);
 const profileForm       = ref({});
 const profileSaving     = ref(false);
 const profileSaved      = ref(false);
+const profileStats      = ref({ reservas: null, mesas: null });
+const planUsage         = ref(null);
+const planUpgrading     = ref(null);
 const restaurantUsers   = ref([]);
 const loadingUsers      = ref(false);
 const copiedUrl         = ref('');
@@ -1047,7 +1227,12 @@ onMounted(() => {
 onUnmounted(() => unsubs.forEach(u => u()));
 
 // ─── Navigation ──────────────────────────────────────
-const nav = (view) => { currentView.value = view; sidebarOpen.value = false; };
+const STAFF_ALLOWED_VIEWS = ['reservas'];
+const nav = (view) => {
+  if (isStaff.value && !STAFF_ALLOWED_VIEWS.includes(view)) return;
+  currentView.value = view;
+  sidebarOpen.value = false;
+};
 
 const switchRestaurant = () => {
   if (selectedRestaurantId.value) syncData(selectedRestaurantId.value);
@@ -1203,6 +1388,8 @@ const DEFAULT_HORARIOS = {
 
 const openProfile = async (restaurant) => {
   profileRestaurant.value = restaurant;
+  profileStats.value = { reservas: null, mesas: null };
+  planUsage.value    = null;
   const h = restaurant.horarios ?? {};
   profileForm.value = {
     nombre:    restaurant.nombre    || '',
@@ -1210,8 +1397,9 @@ const openProfile = async (restaurant) => {
     telefono:  restaurant.telefono  || '',
     email:     restaurant.email     || '',
     web:       restaurant.web       || '',
-    plan:      restaurant.plan      || 'basic',
-    activo:    restaurant.activo    !== false,
+    plan:               restaurant.plan              || 'basic',
+    activo:             restaurant.activo            !== false,
+    modo_confirmacion:  restaurant.modo_confirmacion || 'auto',
     horarios: {
       comida:    { inicio: h.comida?.inicio ?? '13:00', fin: h.comida?.fin ?? '17:00' },
       cena:      { inicio: h.cena?.inicio   ?? '20:00', fin: h.cena?.fin   ?? '00:00' },
@@ -1220,7 +1408,54 @@ const openProfile = async (restaurant) => {
   };
   profileSaved.value = false;
   currentView.value  = 'restaurant-profile';
-  await loadRestaurantUsers(restaurant.id);
+  await Promise.all([
+    loadRestaurantUsers(restaurant.id),
+    fetchProfileStats(restaurant.id),
+    fetchPlanUsage(restaurant.id),
+  ]);
+};
+
+const fetchPlanUsage = async (rid) => {
+  try {
+    const fn  = httpsCallable(fns, 'getPlanUsage');
+    const res = await fn({ restaurant_id: rid });
+    planUsage.value = res.data;
+  } catch (e) {
+    console.warn('[plan] could not fetch usage:', e?.message);
+    planUsage.value = null;
+  }
+};
+
+const planMeterRatio = (metric) => {
+  if (!planUsage.value) return 0;
+  const uso    = planUsage.value.uso[metric === 'reservas' ? 'reservas_mes' : metric];
+  const limite = planUsage.value.planData[metric === 'reservas' ? 'reservas_mes' : metric];
+  if (!limite) return 0; // unlimited
+  return uso / limite;
+};
+
+const startCheckout = async (plan) => {
+  planUpgrading.value = plan;
+  try {
+    const fn  = httpsCallable(fns, 'createCheckoutSession');
+    const res = await fn({ restaurant_id: profileRestaurant.value.id, plan });
+    window.location.href = res.data.url;
+  } catch (e) {
+    alert('Error al iniciar el pago: ' + (e?.message || e));
+    planUpgrading.value = null;
+  }
+};
+
+const fetchProfileStats = async (rid) => {
+  try {
+    const [resSnap, mesasSnap] = await Promise.all([
+      getCountFromServer(query(collection(db, 'reservas'), where('restaurant_id', '==', rid))),
+      getCountFromServer(query(collection(db, 'mesas'),    where('restaurant_id', '==', rid))),
+    ]);
+    profileStats.value = { reservas: resSnap.data().count, mesas: mesasSnap.data().count };
+  } catch {
+    profileStats.value = { reservas: '—', mesas: '—' };
+  }
 };
 
 const saveProfile = async () => {
@@ -1232,9 +1467,10 @@ const saveProfile = async () => {
       telefono:  profileForm.value.telefono  || '',
       email:     profileForm.value.email     || '',
       web:       profileForm.value.web       || '',
-      plan:      profileForm.value.plan      || 'basic',
-      activo:    profileForm.value.activo    !== false,
-      horarios:  profileForm.value.horarios  ?? DEFAULT_HORARIOS,
+      plan:               profileForm.value.plan              || 'basic',
+      activo:             profileForm.value.activo            !== false,
+      modo_confirmacion:  profileForm.value.modo_confirmacion || 'auto',
+      horarios:           profileForm.value.horarios          ?? DEFAULT_HORARIOS,
     });
     profileRestaurant.value = { ...profileRestaurant.value, ...profileForm.value };
     profileSaved.value = true;
@@ -1274,47 +1510,25 @@ const addUser = async () => {
   addUserModal.value.saving = true;
   addUserModal.value.result = null;
 
-  // Generate a readable temp password: Tane-XXXX-YYYY!
-  const rand    = Math.random().toString(36).slice(2, 6).toUpperCase();
-  const tempPwd = `Tane-${rand}-${new Date().getFullYear()}!`;
-
   try {
-    const apiKey = import.meta.env.PUBLIC_FIREBASE_API_KEY;
-    const res = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password: tempPwd, returnSecureToken: false }),
-      }
-    );
-    const data = await res.json();
+    const fn   = httpsCallable(fns, 'createStaffUser');
+    const res  = await fn({
+      email:         email.trim(),
+      role,
+      restaurant_id: profileRestaurant.value.id,
+    });
+    const { uid, isNewUser, tempPassword } = res.data;
 
-    if (data.localId) {
-      await setDoc(doc(db, 'users', data.localId), {
-        email:         email.trim(),
-        role,
-        restaurant_id: profileRestaurant.value.id,
-        creado_en:     serverTimestamp(),
-      });
-      restaurantUsers.value.push({
-        uid: data.localId, email: email.trim(), role,
-        restaurant_id: profileRestaurant.value.id,
-      });
-      addUserModal.value.result = { success: true, password: tempPwd };
-    } else if (data.error?.message === 'EMAIL_EXISTS') {
-      addUserModal.value.result = {
-        success: false,
-        message: 'Este email ya tiene una cuenta. Busca su UID en Firebase Console → Authentication y añade manualmente el documento users/{uid} con { email, role, restaurant_id }.',
-      };
-    } else {
-      addUserModal.value.result = {
-        success: false,
-        message: data.error?.message || 'Error al crear el usuario.',
-      };
-    }
+    // Update local list
+    const idx = restaurantUsers.value.findIndex(u => u.uid === uid);
+    const entry = { uid, email: email.trim(), role, restaurant_id: profileRestaurant.value.id };
+    if (idx >= 0) restaurantUsers.value[idx] = entry;
+    else          restaurantUsers.value.push(entry);
+
+    addUserModal.value.result = { success: true, isNewUser, password: tempPassword };
   } catch (e) {
-    addUserModal.value.result = { success: false, message: 'Error de conexión.' };
+    const msg = e?.message || 'Error al crear el usuario. Inténtalo de nuevo.';
+    addUserModal.value.result = { success: false, message: msg };
   } finally {
     addUserModal.value.saving = false;
   }
@@ -1322,8 +1536,13 @@ const addUser = async () => {
 
 const revokeAccess = async (user) => {
   if (!confirm(`¿Revocar acceso a ${user.email}?`)) return;
-  await updateDoc(doc(db, 'users', user.uid), { restaurant_id: null, role: null });
-  restaurantUsers.value = restaurantUsers.value.filter(u => u.uid !== user.uid);
+  try {
+    const fn = httpsCallable(fns, 'revokeStaffUser');
+    await fn({ uid: user.uid });
+    restaurantUsers.value = restaurantUsers.value.filter(u => u.uid !== user.uid);
+  } catch (e) {
+    alert('Error al revocar acceso: ' + (e?.message || e));
+  }
 };
 
 const closeAddUserModal = () => {
@@ -1414,7 +1633,9 @@ const closeAddUserModal = () => {
 
 /* ── Dashboard Layout ────────────────────────────── */
 .dashboard-wrap {
-  display: flex; min-height: 100vh;
+  display: flex;
+  height: 100vh;       /* lock wrapper to viewport */
+  overflow: hidden;    /* children scroll internally */
   font-family: 'Work Sans', system-ui, sans-serif;
   background: #f5f5f5;
 }
@@ -1424,7 +1645,7 @@ const closeAddUserModal = () => {
   width: 240px; flex-shrink: 0;
   background: #0a0a0a; color: #fff;
   display: flex; flex-direction: column;
-  position: sticky; top: 0; height: 100vh;
+  height: 100%;        /* fill the locked wrapper */
   z-index: 200;
   transition: transform 0.3s cubic-bezier(0.25, 0, 0, 1);
 }
@@ -1514,6 +1735,8 @@ const closeAddUserModal = () => {
 .main-area {
   flex: 1; display: flex; flex-direction: column;
   min-width: 0; background: #f5f5f5;
+  overflow-y: auto;    /* main content scrolls here */
+  overflow-x: hidden;  /* prevent horizontal bleed (CSS spec: setting one axis forces the other) */
 }
 
 /* ── Top bar ─────────────────────────────────────── */
@@ -1597,8 +1820,8 @@ const closeAddUserModal = () => {
   background: #fff; transition: border-color 0.2s;
 }
 .filter-input:focus { border-color: #000; }
-.filter-search { min-width: 200px; }
-.filter-search-wrap { flex: 1; min-width: 180px; }
+.filter-search { min-width: 160px; }
+.filter-search-wrap { flex: 1; min-width: 160px; }
 .quick-date-btn {
   padding: 0.375rem 0.625rem; border: 1.5px solid #ddd; border-radius: 4px;
   background: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em;
@@ -1716,8 +1939,9 @@ const closeAddUserModal = () => {
 .booking-actions {
   display: flex; flex-direction: column;
   gap: 0.5rem; padding: 1rem;
-  justify-content: center; min-width: 100px;
+  justify-content: center;
   border-left: 1px solid #f0f0f0;
+  flex-shrink: 0;
 }
 .act-btn {
   padding: 0.5rem 0.75rem;
@@ -1764,7 +1988,7 @@ const closeAddUserModal = () => {
 .marketing-pill--no  { background: #f1f5f9; color: #94a3b8; }
 
 /* ── Room map ────────────────────────────────────── */
-.mapa-grid-wrap { overflow-x: auto; padding: 1rem 0; }
+.mapa-grid-wrap { overflow-x: auto; padding: 1rem 0; max-width: 100%; }
 .mapa-grid {
   display: grid;
   grid-template-columns: repeat(13, 52px);
@@ -1958,70 +2182,260 @@ const closeAddUserModal = () => {
 @keyframes slideUp { from { transform: translateY(12px); opacity: 0 } to { transform: none; opacity: 1 } }
 
 /* ── Responsive ──────────────────────────────────── */
+
+/* Tablet / sidebar drawer */
 @media (max-width: 900px) {
   .sidebar {
-    position: fixed; left: 0; top: 0; bottom: 0;
+    position: fixed; left: 0; top: 0; bottom: 0; height: 100%;
     transform: translateX(-100%);
   }
   .sidebar--open { transform: translateX(0); }
   .sidebar-close { display: block; }
   .hamburger { display: flex; }
+  /* KPI: 2×2 */
   .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  /* Booking actions: move below content */
   .booking-row { flex-wrap: wrap; }
   .booking-actions {
     width: 100%; flex-direction: row;
     border-left: none; border-top: 1px solid #f0f0f0;
-    padding: 0.75rem 1.25rem;
+    padding: 0.75rem 1rem; gap: 0.5rem;
   }
+  .act-btn { flex: 1; }
+  /* Profile: single column */
+  .prof-main { grid-template-columns: 1fr; }
+  /* Horarios: always single column below 900px */
+  .prof-horarios { grid-template-columns: 1fr; }
+  /* Stats strip: 2×2 grid */
+  .prof-stats { flex-wrap: wrap; }
+  .prof-stat  { flex: 1 1 50%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .prof-stat:nth-child(odd)  { border-right: 1px solid rgba(255,255,255,0.08); }
+  .prof-stat:last-child, .prof-stat:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+  /* Hero */
+  .prof-hero-top { flex-direction: column; gap: 0.75rem; }
+  .prof-hero-name { font-size: 1.5rem; }
 }
 
+/* Mobile (≤ 600px) */
 @media (max-width: 600px) {
-  .view-section { padding: 1rem; }
-  .kpi-strip { grid-template-columns: repeat(2, 1fr); }
-  .filters-bar { padding: 0.875rem 1rem; }
-  .tab-group { gap: 0.25rem; }
-  .tab-pill { padding: 0.3rem 0.625rem; font-size: 0.65rem; }
-  .booking-top { flex-direction: column; }
+  /* Layout */
+  .view-section { padding: 0.875rem; }
+  .topbar { padding: 0 0.875rem; gap: 0.5rem; }
+  .topbar-title { font-size: 0.65rem; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .res-switcher { font-size: 0.7rem; max-width: 130px; }
+
+  /* KPIs */
+  .kpi-strip { grid-template-columns: repeat(2, 1fr); gap: 0.625rem; }
+  .kpi-card  { padding: 1rem 0.75rem; }
+  .kpi-num   { font-size: 1.75rem; }
+
+  /* Filters: each group full width */
+  .filters-bar { padding: 0.875rem; gap: 0.5rem; }
+  .filter-group { width: 100%; min-width: 0; }
+  .filter-search-wrap { width: 100%; min-width: 0; flex: none; }
+  .filter-search { min-width: 0 !important; width: 100%; }
+  /* Tabs: horizontal scroll */
+  .tab-group { gap: 0.25rem; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; width: 100%; min-width: 0; }
+  .tab-pill  { padding: 0.3rem 0.625rem; font-size: 0.65rem; white-space: nowrap; }
+
+  /* Booking rows */
+  .booking-top  { flex-direction: column; }
+  .booking-body { padding: 0.875rem 1rem; }
+  .act-btn { min-height: 40px; padding: 0.5rem 0.625rem; }
+
+  /* Hide secondary info */
+  .booking-row .col-date,
+  .booking-row .col-phone { display: none; }
+
+  /* SaaS grid: single column */
   .saas-grid { grid-template-columns: 1fr; }
-  .mapa-grid { grid-template-columns: repeat(13, 42px); grid-template-rows: repeat(13, 42px); }
+
+  /* Mapa: smaller cells */
+  .mapa-grid {
+    grid-template-columns: repeat(13, 42px);
+    grid-template-rows:    repeat(13, 42px);
+  }
+
+  /* Profile hero */
+  .prof-hero { padding: 1.25rem 1.25rem 0; border-radius: 10px; }
+  .prof-hero-name { font-size: 1.375rem; }
+  .prof-stats { margin: 0 -1.25rem; } /* match reduced hero padding */
+  .prof-horarios { grid-template-columns: 1fr; }
+
+  /* Danger zone */
+  .danger-inner { flex-direction: column; align-items: flex-start; gap: 1rem; }
+
+  /* Modal */
+  .modal-box { padding: 1.5rem; }
+}
+
+/* Small phones (≤ 480px — iPhone SE, Galaxy A) */
+@media (max-width: 480px) {
+  /* View padding */
+  .view-section { padding: 0.75rem; }
+
+  /* KPI numbers */
+  .kpi-num { font-size: 1.5rem; }
+
+  /* Form rows: always stack */
+  .field-row { flex-direction: column; }
+  .field--narrow { flex: 1 !important; }
+
+  /* Action buttons: bigger touch target */
+  .act-btn { min-height: 44px; font-size: 0.75rem; }
+
+  /* View header: stack title + button */
+  .view-header { flex-direction: column; align-items: stretch; }
+  .btn-primary-sm { text-align: center; }
+
+  /* URL items: stack label + copy button */
+  .url-item { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+  .url-info { width: 100%; }
+  .url-value { white-space: normal; word-break: break-all; }
+  .copy-btn { width: 100%; text-align: center; }
+
+  /* Modal footer: full-width stacked buttons */
+  .modal-footer { flex-direction: column-reverse; gap: 0.5rem; }
+  .modal-footer .btn-primary-sm,
+  .modal-footer .btn-ghost-sm,
+  .modal-footer .btn-danger-sm { width: 100%; text-align: center; justify-content: center; }
+
+  /* Topbar: hide title text, more room for switcher */
+  .topbar-title { display: none; }
+  .res-switcher  { max-width: 200px; }
+
+  /* Prof hero stats: 2×2 with reduced text */
+  .prof-stat-num { font-size: 1.125rem; }
 }
 
 /* ── Restaurant profile ──────────────────────────── */
-.profile-id { font-family: monospace; font-size: 0.8em; background: #f0f0f0; padding: 0.15em 0.4em; border-radius: 3px; }
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; align-items: start; }
-@media (max-width: 1100px) { .profile-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 700px)  { .profile-grid { grid-template-columns: 1fr; } }
-.profile-section { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 1.25rem; }
-.profile-section-title { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 1rem; display: flex; align-items: center; justify-content: space-between; }
+/* ── Profile view ─────────────────────────────────── */
+.prof-view { display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* Hero */
+.prof-hero {
+  background: #000;
+  border-radius: 12px;
+  padding: 1.75rem 2rem 0;
+  color: #fff;
+  overflow: hidden;
+}
+.prof-hero-body { margin-bottom: 1.75rem; }
+.prof-hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.875rem; }
+.prof-hero-badges { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.prof-status-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.3em 0.75em; border-radius: 100px;
+}
+.prof-status-pill--on  { background: rgba(34,197,94,0.2); color: #4ade80; }
+.prof-status-pill--off { background: rgba(255,255,255,0.1); color: #aaa; }
+.prof-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.prof-plan-pill {
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.3em 0.75em; border-radius: 100px; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7);
+}
+.prof-plan-pill--pro   { border-color: #a78bfa; color: #c4b5fd; }
+.prof-plan-pill--basic { border-color: rgba(255,255,255,0.25); }
+.prof-plan-pill--trial { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.5); }
+.prof-hero-name {
+  font-size: 2rem; font-weight: 300; letter-spacing: 0.04em;
+  margin: 0 0 0.5rem; line-height: 1.1;
+}
+.prof-hero-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.75rem; color: rgba(255,255,255,0.5); margin: 0; }
+.prof-id-code { font-family: monospace; background: rgba(255,255,255,0.1); padding: 0.15em 0.5em; border-radius: 4px; font-size: 0.85em; color: rgba(255,255,255,0.6); }
+.prof-meta-sep { color: rgba(255,255,255,0.25); }
+/* Stats strip at bottom of hero */
+.prof-stats {
+  display: flex;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 0 -2rem;
+}
+.prof-stat {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1rem 0.5rem;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.prof-stat:last-child { border-right: none; }
+.prof-stat-num { font-size: 1.375rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 0.25rem; }
+.prof-stat-num--sm { font-size: 0.85rem; font-weight: 500; }
+.prof-stat-lbl { font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,0.4); }
+
+/* Main 2-col layout */
+.prof-main { display: grid; grid-template-columns: 1fr 380px; gap: 1.25rem; align-items: start; }
+@media (max-width: 1050px) { .prof-main { grid-template-columns: 1fr; } }
+@media (max-width: 900px)  { .prof-main { grid-template-columns: 1fr; } }
+.prof-col-left  { display: flex; flex-direction: column; gap: 1.25rem; }
+.prof-col-right { display: flex; flex-direction: column; gap: 1.25rem; }
+
+/* Cards */
+.prof-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 1.375rem; overflow: hidden; }
+.prof-card-title {
+  font-size: 0.65rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;
+  color: #111;
+}
+.prof-card-title svg { opacity: 0.5; flex-shrink: 0; }
+
 .profile-form { display: flex; flex-direction: column; gap: 0.875rem; }
+.profile-form .field { display: flex; flex-direction: column; gap: 0.4rem; }
+.profile-form .field label { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #666; }
+.profile-form input[type="text"],
+.profile-form input[type="email"],
+.profile-form input[type="tel"],
+.profile-form input[type="url"] {
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.profile-form input:focus { border-color: #000; }
 .profile-saved-msg { font-size: 0.7rem; color: #22c55e; font-weight: 700; margin: 0; }
-.profile-loading { font-size: 0.75rem; color: #999; padding: 0.75rem 0; }
-.horarios-hint { font-size: 0.65rem; color: #888; margin: 0; line-height: 1.5; }
-.horarios-block { display: flex; flex-direction: column; gap: 0.4rem; }
-.horarios-label { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #000; }
+.profile-loading { font-size: 0.75rem; color: #999; padding: 0.5rem 0; }
+.prof-form-footer { display: flex; align-items: center; gap: 1rem; margin-top: 0.25rem; }
+
+/* Horarios */
+.horarios-hint { font-size: 0.7rem; color: #888; margin: 0; line-height: 1.6; }
+.prof-horarios { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.prof-turno-card { background: #f7f7f7; border-radius: 8px; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.625rem; }
+.prof-turno-label { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #555; display: flex; align-items: center; gap: 0.4rem; }
+.prof-turno-label svg { opacity: 0.6; }
+.prof-time-row { display: flex; align-items: center; gap: 0.5rem; }
+.prof-time-input { flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem 0.5rem; font-size: 0.8rem; font-family: inherit; background: #fff; min-width: 0; }
+.prof-time-sep { font-size: 0.75rem; color: #aaa; flex-shrink: 0; }
 .field-input-sm { border: 1px solid #ddd; border-radius: 4px; padding: 0.4rem 0.5rem; font-size: 0.8rem; font-family: inherit; width: 100%; }
-.profile-empty-users { font-size: 0.75rem; color: #aaa; font-style: italic; padding: 0.5rem 0; }
+
 /* URL list */
-.url-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem; }
-.url-item { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: #f9f9f9; border-radius: 6px; padding: 0.625rem 0.75rem; }
-.url-info { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-.url-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #666; }
-.url-value { font-size: 0.7rem; color: #333; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.copy-btn { flex-shrink: 0; padding: 0.35rem 0.75rem; background: #000; color: #fff; border: none; border-radius: 4px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
+.url-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.url-item { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: #f7f7f7; border-radius: 8px; padding: 0.75rem; max-width: 100%; overflow: hidden; }
+.url-info { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; overflow: hidden; }
+.url-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #888; }
+.url-value { font-size: 0.7rem; color: #222; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
+.copy-btn { flex-shrink: 0; padding: 0.35rem 0.75rem; background: #000; color: #fff; border: none; border-radius: 5px; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
 .copy-btn:hover { background: #333; }
 .copy-btn--copied { background: #22c55e; }
+
 /* Users list */
-.add-user-btn { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; background: #000; color: #fff; border: none; border-radius: 4px; padding: 0.3rem 0.65rem; cursor: pointer; }
-.add-user-btn:hover { opacity: 0.8; }
+.add-user-btn { margin-left: auto; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; background: #000; color: #fff; border: none; border-radius: 4px; padding: 0.3rem 0.65rem; cursor: pointer; }
+.add-user-btn:hover { opacity: 0.75; }
+.profile-empty-users { font-size: 0.75rem; color: #bbb; font-style: italic; padding: 0.5rem 0; }
 .users-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.user-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: #f9f9f9; border-radius: 6px; }
-.user-info { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
+.user-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; background: #f7f7f7; border-radius: 8px; }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: #111; color: #fff; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.user-info { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; flex: 1; }
 .user-email { font-size: 0.75rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-role-badge { font-size: 0.55rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: 100px; flex-shrink: 0; }
+.user-role-badge { font-size: 0.55rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: 100px; align-self: flex-start; }
 .user-role-badge--admin { background: #dbeafe; color: #1e40af; }
 .user-role-badge--staff { background: #f0fdf4; color: #166534; }
 .revoke-btn { width: 24px; height: 24px; border-radius: 50%; background: #fee2e2; color: #ef4444; border: none; font-size: 0.6rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
 .revoke-btn:hover { background: #fca5a5; }
+
 /* Add user modal */
 .add-user-success { text-align: center; padding: 1rem 0; }
 .add-user-success-title { font-size: 1.1rem; font-weight: 700; color: #22c55e; margin: 0 0 0.5rem; }
@@ -2031,10 +2445,12 @@ const closeAddUserModal = () => {
 .credentials-box code { background: #eee; padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.9em; }
 .add-user-hint { font-size: 0.65rem; color: #999; margin: 0; }
 .add-user-error { font-size: 0.8rem; color: #991b1b; background: #fff5f5; border: 1px solid #fca5a5; border-radius: 6px; padding: 1rem; }
+
 /* Danger zone */
-.danger-zone { margin-top: 1.5rem; background: #fff5f5; border: 1px solid #fca5a5; border-radius: 8px; padding: 1.25rem; }
-.danger-title { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: #991b1b; margin: 0 0 0.5rem; }
-.danger-desc { font-size: 0.75rem; color: #555; margin: 0 0 1rem; }
+.danger-zone { background: #fff; border: 1px solid #fca5a5; border-radius: 10px; padding: 1.25rem 1.375rem; }
+.danger-inner { display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
+.danger-title { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: #991b1b; margin: 0 0 0.35rem; }
+.danger-desc { font-size: 0.75rem; color: #777; margin: 0; }
 /* Toggle switch */
 .toggle-label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding-top: 0.75rem; }
 .toggle-input { display: none; }
@@ -2048,4 +2464,72 @@ const closeAddUserModal = () => {
 /* nav back button */
 .nav-btn--back { opacity: 0.6; font-size: 0.6rem; }
 .nav-btn--back:hover { opacity: 1; background: transparent; color: #fff; }
+
+/* ── Plan card ───────────────────────────────────── */
+.plan-body { display: flex; flex-direction: column; gap: 1.25rem; }
+.plan-header-row { display: flex; align-items: center; justify-content: space-between; }
+.plan-badge {
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase;
+  padding: 0.3em 0.8em; border-radius: 100px;
+}
+.plan-badge--trial  { background: #f3f4f6; color: #6b7280; }
+.plan-badge--basic  { background: #dbeafe; color: #1e40af; }
+.plan-badge--pro    { background: #000; color: #fff; }
+.plan-price { font-size: 0.85rem; font-weight: 700; color: #111; }
+
+/* Usage meters */
+.plan-meters { display: flex; flex-direction: column; gap: 0.875rem; }
+.plan-meter {}
+.plan-meter-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: #555; margin-bottom: 0.3rem; }
+.plan-meter-count  { font-weight: 700; color: #111; }
+.plan-meter-bar    { height: 5px; background: #eee; border-radius: 100px; overflow: hidden; }
+.plan-meter-fill   { height: 100%; background: #000; border-radius: 100px; transition: width 0.4s ease; min-width: 2px; }
+.plan-meter-fill--warn { background: #f59e0b; }
+.plan-meter-fill--over { background: #ef4444; }
+
+/* Features */
+.plan-features { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.plan-feat {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em;
+  padding: 0.25em 0.6em; border-radius: 100px; border: 1px solid;
+}
+.plan-feat--on  { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.plan-feat--off { background: #f9fafb; color: #9ca3af; border-color: #e5e7eb; }
+
+/* Upgrade buttons */
+.plan-upgrade-row { display: flex; gap: 0.5rem; flex-direction: column; }
+.plan-upgrade-btn {
+  width: 100%; padding: 0.65rem 1rem; border: none; border-radius: 6px;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+}
+.plan-upgrade-btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+.plan-upgrade-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+.plan-upgrade-btn--basic { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.plan-upgrade-btn--pro   { background: #000; color: #fff; }
+.plan-pro-msg { font-size: 0.72rem; color: #22c55e; font-weight: 600; text-align: center; margin: 0; }
+
+/* ── Responsive overrides — must be LAST so they win over base rules ── */
+@media (max-width: 900px) {
+  .prof-hero-top  { flex-direction: column; gap: 0.75rem; }
+  .prof-hero-name { font-size: 1.5rem; }
+  .prof-stats     { flex-wrap: wrap; }
+  .prof-stat      { flex: 1 1 50%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .prof-stat:nth-child(odd) { border-right: 1px solid rgba(255,255,255,0.08); }
+  .prof-stat:last-child,
+  .prof-stat:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+  .prof-horarios  { grid-template-columns: 1fr; }
+  .danger-inner   { flex-direction: column; align-items: flex-start; gap: 1rem; }
+}
+@media (max-width: 600px) {
+  .prof-hero      { padding: 1.25rem 1.25rem 0; border-radius: 10px; }
+  .prof-hero-name { font-size: 1.375rem; }
+  .prof-stats     { margin: 0 -1.25rem; }
+}
+@media (max-width: 480px) {
+  .url-item  { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+  .url-info  { width: 100%; }
+  .url-value { white-space: normal; word-break: break-all; }
+  .copy-btn  { width: 100%; text-align: center; }
+}
 </style>
