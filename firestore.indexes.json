@@ -31,6 +31,24 @@
         { "fieldPath": "estado", "order": "ASCENDING" },
         { "fieldPath": "fecha",  "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "waitlist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "restaurant_id", "order": "ASCENDING" },
+        { "fieldPath": "fecha",         "order": "ASCENDING" },
+        { "fieldPath": "estado",        "order": "ASCENDING" },
+        { "fieldPath": "creado_en",     "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "blacklist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "restaurant_id", "order": "ASCENDING" },
+        { "fieldPath": "email",         "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

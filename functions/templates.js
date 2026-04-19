@@ -263,6 +263,147 @@ module.exports = {
     </div>
   `,
 
+  // ── TRIAL EXPIRY FUNNEL ──────────────────────────────────────────────────────
+
+  trialExpiry7Days: (nombreRestaurante, email, upgradeUrl) => `
+    <div style="${baseStyle}">
+      <div style="text-align:center;margin-bottom:32px;">
+        <h1 style="font-size:20px;font-weight:300;letter-spacing:2px;text-transform:uppercase;margin:0;">
+          TANE <span style="font-style:italic;color:#777;">Booking</span>
+        </h1>
+      </div>
+      <h2 style="font-size:18px;font-weight:400;margin:0 0 12px;">Tu prueba gratuita termina en 7 días</h2>
+      <p style="color:#555;">Hola, quedan <strong>7 días</strong> para que finalice el periodo de prueba de <strong>${nombreRestaurante}</strong> en Tane Booking.</p>
+      <p style="color:#555;">¿Qué pasa cuando termine el trial? El acceso al panel se pausará hasta que elijas un plan. <strong>Tus datos siempre se conservan</strong>.</p>
+      <div style="background:#f7f7f7;border-radius:8px;padding:20px;margin:20px 0;">
+        <p style="margin:0 0 8px;font-weight:700;">Planes disponibles:</p>
+        <p style="margin:0 0 4px;font-size:13px;">· Basic — <strong>€29/mes</strong> · Hasta 10 usuarios, reservas ilimitadas</p>
+        <p style="margin:0;font-size:13px;">· Pro — <strong>€59/mes</strong> · Multi-restaurante, usuarios ilimitados</p>
+      </div>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${upgradeUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;
+           font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+           padding:14px 32px;border-radius:4px;">Elegir mi plan →</a>
+      </div>
+      ${taneFooter}
+    </div>
+  `,
+
+  trialExpiry3Days: (nombreRestaurante, email, upgradeUrl) => `
+    <div style="${baseStyle}">
+      <div style="text-align:center;margin-bottom:32px;">
+        <h1 style="font-size:20px;font-weight:300;letter-spacing:2px;text-transform:uppercase;margin:0;">
+          TANE <span style="font-style:italic;color:#777;">Booking</span>
+        </h1>
+      </div>
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0;font-weight:700;color:#856404;">⏱ Solo quedan 3 días de prueba en ${nombreRestaurante}</p>
+      </div>
+      <p style="color:#555;">Tu periodo de prueba gratuita termina el próximo <strong>miércoles</strong>. Para no perder el acceso al panel, activa tu plan ahora.</p>
+      <p style="color:#555;">Hasta ahora has podido usar: reservas online, confirmaciones automáticas, mapa de sala, CRM y analytics.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${upgradeUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;
+           font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+           padding:14px 32px;border-radius:4px;">Activar mi plan — desde €29/mes →</a>
+      </div>
+      <p style="font-size:12px;color:#888;text-align:center;">Sin permanencia · Cancela cuando quieras</p>
+      ${taneFooter}
+    </div>
+  `,
+
+  trialExpiry1Day: (nombreRestaurante, email, upgradeUrl) => `
+    <div style="${baseStyle}">
+      <div style="text-align:center;margin-bottom:32px;">
+        <h1 style="font-size:20px;font-weight:300;letter-spacing:2px;text-transform:uppercase;margin:0;">
+          TANE <span style="font-style:italic;color:#777;">Booking</span>
+        </h1>
+      </div>
+      <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0;font-weight:700;color:#991b1b;">🔴 Tu prueba termina mañana</p>
+      </div>
+      <p style="color:#555;"><strong>${nombreRestaurante}</strong>, mañana finaliza tu periodo de prueba gratuita en Tane Booking.</p>
+      <p style="color:#555;">Si no activas un plan, el panel quedará pausado y <strong>dejarás de recibir reservas online</strong>.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${upgradeUrl}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;
+           font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+           padding:14px 32px;border-radius:4px;">Activar plan ahora →</a>
+      </div>
+      <p style="font-size:12px;color:#888;text-align:center;">¿Tienes dudas? Escríbenos a <a href="mailto:admin@tanesolutions.com" style="color:#555;">admin@tanesolutions.com</a></p>
+      ${taneFooter}
+    </div>
+  `,
+
+  trialExpired: (nombreRestaurante, email, upgradeUrl) => `
+    <div style="${baseStyle}">
+      <div style="text-align:center;margin-bottom:32px;">
+        <h1 style="font-size:20px;font-weight:300;letter-spacing:2px;text-transform:uppercase;margin:0;">
+          TANE <span style="font-style:italic;color:#777;">Booking</span>
+        </h1>
+      </div>
+      <h2 style="font-size:18px;font-weight:400;margin:0 0 12px;">Tu periodo de prueba ha finalizado</h2>
+      <p style="color:#555;">El trial de <strong>${nombreRestaurante}</strong> ha expirado. Tu panel está pausado y el formulario de reservas ya no acepta nuevas solicitudes.</p>
+      <p style="color:#555;"><strong>Tus datos están seguros</strong> y se conservan durante 30 días. Activa un plan para retomar desde donde lo dejaste.</p>
+      <div style="background:#f7f7f7;border-radius:8px;padding:20px;margin:20px 0;">
+        <p style="margin:0 0 4px;font-size:13px;">· Basic — <strong>€29/mes</strong></p>
+        <p style="margin:0;font-size:13px;">· Pro — <strong>€59/mes</strong></p>
+      </div>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${upgradeUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;
+           font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+           padding:14px 32px;border-radius:4px;">Reactivar mi cuenta →</a>
+      </div>
+      ${taneFooter}
+    </div>
+  `,
+
+  // ── REVIEW REQUEST (post-visita) ─────────────────────────────────────────────
+  reviewRequest: (nombre, restaurante, googleMapsUrl) => `
+    <div style="${baseStyle}">
+      ${makeHeader(restaurante)}
+      <h2 style="font-size:20px;font-weight:400;margin:0 0 12px;">¿Qué te pareció tu visita?</h2>
+      <p style="color:#555;">Hola <strong>${nombre}</strong>, esperamos que hayas disfrutado de tu visita a <strong>${restaurante.nombre}</strong>.</p>
+      <p style="color:#555;">Si tu experiencia fue positiva, nos ayudaría mucho que dejaras una reseña en Google. Solo te llevará 1 minuto y ayuda a otros comensales a encontrarnos.</p>
+      <div style="text-align:center;margin:32px 0;">
+        <a href="${googleMapsUrl}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;
+           font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+           padding:14px 32px;border-radius:4px;">⭐ Dejar reseña en Google →</a>
+      </div>
+      <p style="font-size:12px;color:#aaa;text-align:center;">Si algo no fue bien, responde a este email y lo solucionamos.</p>
+      ${makeFooter(restaurante)}
+    </div>
+  `,
+
+  // ── LISTA DE ESPERA ─────────────────────────────────────────────────────────
+  waitlistConfirmation: (nombre, fecha, hora, restaurante) => `
+    <div style="${baseStyle}">
+      ${makeHeader(restaurante)}
+      <h2 style="font-size:18px;font-weight:400;margin:0 0 12px;">Estás en la lista de espera</h2>
+      <p style="color:#555;">Hola <strong>${nombre}</strong>, te hemos añadido a la lista de espera para el <strong>${fecha}</strong> a las <strong>${hora}</strong> en ${restaurante.nombre}.</p>
+      <p style="color:#555;">Si se libera una mesa, te avisaremos inmediatamente por email. No necesitas hacer nada más.</p>
+      <div style="background:#f0f9ff;border-left:4px solid #0ea5e9;padding:16px;border-radius:4px;margin:20px 0;">
+        <p style="margin:0;font-size:13px;color:#0c4a6e;">💡 Si consigues mesa en otro lugar, no hace falta que nos avises. Tu puesto se liberará automáticamente si no confirmas en 1 hora.</p>
+      </div>
+      ${makeFooter(restaurante)}
+    </div>
+  `,
+
+  waitlistNotification: (nombre, fecha, hora, bookingUrl, restaurante) => `
+    <div style="${baseStyle}">
+      ${makeHeader(restaurante)}
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0;font-weight:700;color:#166534;">🎉 ¡Se ha liberado una mesa!</p>
+      </div>
+      <p style="color:#555;">Hola <strong>${nombre}</strong>, ha habido una cancelación para el <strong>${fecha}</strong> a las <strong>${hora}</strong> en ${restaurante.nombre}.</p>
+      <p style="color:#555;"><strong>Tienes 1 hora</strong> para confirmar tu reserva. Después, se ofrecerá al siguiente en la lista.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${bookingUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;
+           font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+           padding:14px 32px;border-radius:4px;">Confirmar mi mesa →</a>
+      </div>
+      ${makeFooter(restaurante)}
+    </div>
+  `,
+
   // 5. RESTABLECIMIENTO DE CONTRASEÑA (staff/admin)
   restablecimientoContrasena: (email, resetLink, restaurante) => `
     <div style="${baseStyle}">

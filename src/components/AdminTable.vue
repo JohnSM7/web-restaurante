@@ -131,6 +131,12 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             ANALYTICS
           </button>
+          <button v-if="!isStaff" @click="nav('waitlist')"
+            :class="['nav-btn', currentView === 'waitlist' && 'nav-btn--active']">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            LISTA ESPERA
+            <span v-if="waitlistCount > 0" class="nav-badge">{{ waitlistCount }}</span>
+          </button>
           <!-- Configuración: visible para admin (no superadmin, no staff) -->
           <button v-if="!isStaff && !isSuperAdmin" @click="openOwnProfile()"
             :class="['nav-btn', currentView === 'restaurant-profile' && 'nav-btn--active']">
@@ -376,6 +382,7 @@
                 <th>Visitas</th>
                 <th>Última visita</th>
                 <th>Marketing</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -395,6 +402,12 @@
                   <span :class="['marketing-pill', c.marketing ? 'marketing-pill--yes' : 'marketing-pill--no']">
                     {{ c.marketing ? '✓ Sí' : '— No' }}
                   </span>
+                </td>
+                <td>
+                  <button v-if="!isStaff" @click="blacklistCustomer(c)"
+                    class="bl-btn" title="Bloquear cliente (añadir a blacklist)">
+                    🚫
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -501,9 +514,50 @@
             <h3 class="view-heading">Clientes SaaS</h3>
             <p class="view-sub">{{ restaurants.length }} restaurantes en la plataforma</p>
           </div>
-          <button @click="showCreateModal = true" class="btn-primary-sm">
-            + NUEVO CLIENTE
-          </button>
+          <div style="display:flex;gap:0.5rem">
+            <button @click="loadSaasMetrics" :disabled="saasMetricsLoading" class="btn-ghost-sm">
+              {{ saasMetricsLoading ? 'Cargando…' : '📊 Métricas' }}
+            </button>
+            <button @click="showCreateModal = true" class="btn-primary-sm">
+              + NUEVO CLIENTE
+            </button>
+          </div>
+        </div>
+
+        <!-- SaaS Metrics panel -->
+        <div v-if="saasMetrics" class="saas-metrics-strip">
+          <div class="saas-metric">
+            <span class="sm-num">€{{ saasMetrics.mrr }}</span>
+            <span class="sm-lbl">MRR</span>
+          </div>
+          <div class="saas-metric">
+            <span class="sm-num">{{ saasMetrics.paid }}</span>
+            <span class="sm-lbl">Clientes pagos</span>
+          </div>
+          <div class="saas-metric">
+            <span class="sm-num">{{ saasMetrics.trials }}</span>
+            <span class="sm-lbl">En trial</span>
+          </div>
+          <div class="saas-metric">
+            <span class="sm-num">{{ saasMetrics.churned }}</span>
+            <span class="sm-lbl">Churned</span>
+          </div>
+          <div class="saas-metric">
+            <span class="sm-num">{{ saasMetrics.convRate }}%</span>
+            <span class="sm-lbl">Conv. trial→paid</span>
+          </div>
+          <div class="saas-metric">
+            <span class="sm-num">{{ saasMetrics.recentSignups }}</span>
+            <span class="sm-lbl">Signups 30d</span>
+          </div>
+          <div class="saas-metric">
+            <span class="sm-num">{{ saasMetrics.byPlan.basic }}</span>
+            <span class="sm-lbl">Basic</span>
+          </div>
+          <div class="saas-metric">
+            <span class="sm-num">{{ saasMetrics.byPlan.pro }}</span>
+            <span class="sm-lbl">Pro</span>
+          </div>
         </div>
 
         <div v-if="restaurants.length === 0" class="state-empty">
@@ -620,6 +674,55 @@
 
       </section>
 
+      <!-- ── VIEW: LISTA DE ESPERA ── -->
+      <section v-else-if="currentView === 'waitlist' && currentRestaurantId" class="view-section">
+        <div class="view-header">
+          <div>
+            <h3 class="view-heading">Lista de Espera</h3>
+            <p class="view-sub">
+              {{ waitlistCount }} entrada(s) esperando · {{ waitlist.filter(w => w.estado === 'notified').length }} notificadas
+            </p>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div v-if="waitlist.length === 0" class="state-empty">
+          <p class="empty-icon">⏳</p>
+          <p class="empty-title">Lista vacía</p>
+          <p class="empty-sub">No hay entradas en lista de espera para este restaurante.</p>
+        </div>
+
+        <!-- Waitlist entries grouped by date -->
+        <div v-else class="wl-list">
+          <article v-for="entry in waitlist" :key="entry.id" :class="['wl-row', `wl-row--${entry.estado}`]">
+            <div class="wl-bar"></div>
+            <div class="wl-body">
+              <div class="wl-top">
+                <div class="wl-identity">
+                  <strong class="wl-name">{{ entry.nombre }}</strong>
+                  <span class="wl-pax-pill">{{ entry.comensales }} pax</span>
+                  <span :class="['wl-estado-badge', `wl-estado-badge--${entry.estado}`]">
+                    {{ entry.estado === 'waiting' ? 'Esperando' : entry.estado === 'notified' ? 'Notificado' : 'Expirado' }}
+                  </span>
+                </div>
+                <div class="wl-time-block">
+                  <span class="time-big">{{ entry.hora || '—' }}</span>
+                  <span class="date-small">{{ entry.fecha ? (entry.fecha.toDate ? entry.fecha.toDate().toLocaleDateString('es-ES') : new Date(entry.fecha).toLocaleDateString('es-ES')) : '—' }}</span>
+                </div>
+              </div>
+              <div class="wl-meta-row">
+                <span class="meta-item">✉ {{ entry.email }}</span>
+                <span v-if="entry.telefono" class="meta-item">📞 {{ entry.telefono }}</span>
+              </div>
+              <div v-if="entry.comentarios" class="booking-comment">💬 <em>{{ entry.comentarios }}</em></div>
+            </div>
+            <div class="wl-actions">
+              <button @click="removeWaitlistEntry(entry)" class="bl-btn" title="Eliminar de la lista de espera">🗑</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <!-- ── VIEW: RESTAURANT PROFILE ── -->
       <section v-else-if="currentView === 'restaurant-profile' && profileRestaurant" class="view-section prof-view">
 
@@ -688,6 +791,11 @@
                   <div class="field"><label>Email contacto</label><input v-model="profileForm.email" type="email" placeholder="info@restaurante.com"></div>
                 </div>
                 <div class="field"><label>Sitio web</label><input v-model="profileForm.web" type="url" placeholder="https://restaurante.com"></div>
+                <div class="field">
+                  <label>URL de Reseñas Google Maps</label>
+                  <input v-model="profileForm.google_maps_url" type="url" placeholder="https://maps.google.com/?cid=...">
+                  <p class="field-hint">Se incluirá en el email post-visita para pedir reseñas al cliente</p>
+                </div>
                 <!-- Plan y estado activo: solo superadmin puede cambiarlos -->
                 <div v-if="isSuperAdmin" class="field-row">
                   <div class="field">
@@ -1255,6 +1363,7 @@ const statusMsg         = ref('Conectando…');
 const restaurants       = ref([]);
 const reservas          = ref([]);
 const mesas             = ref([]);
+const waitlist          = ref([]);
 const selectedRestaurantId = ref('');
 let unsubs    = [];   // listeners de datos (reservas, mesas, restaurants) — se limpian en syncData
 let unsubAuth = null; // listener de auth — NUNCA se limpia en syncData, solo en onUnmounted
@@ -1308,6 +1417,14 @@ const emailMktSentCount   = ref(0);
 // ─── Widget color ─────────────────────────────────
 const COLOR_PRESETS = ['#000000','#1e3a5f','#7c3aed','#dc2626','#059669','#d97706','#db2777'];
 
+// ─── SaaS metrics (superadmin) ────────────────────
+const saasMetrics        = ref(null);
+const saasMetricsLoading = ref(false);
+
+// ─── Blacklist ────────────────────────────────────
+const addToBlacklistFn    = computed(() => httpsCallable(fns, 'addToBlacklist'));
+const removeBlacklistFn   = computed(() => httpsCallable(fns, 'removeFromBlacklist'));
+
 // ─── Filters ─────────────────────────────────────────
 const filterDate    = ref('');   // empty = todas las fechas
 const filterStatus  = ref('todas');
@@ -1352,12 +1469,17 @@ const viewTitle = computed(() => ({
   'customers':           'CRM CLIENTES',
   'mapa':                'MAPA DE SALA',
   'analytics':           'ANALYTICS',
+  'waitlist':            'LISTA DE ESPERA',
   'saas-clients':        'CLIENTES SAAS',
   'restaurant-profile':  profileRestaurant.value?.nombre ?? 'PERFIL',
 }[currentView.value] ?? 'PANEL DE CONTROL'));
 
 const pendingCount = computed(() =>
   reservas.value.filter(r => r.estado === 'pendiente').length
+);
+
+const waitlistCount = computed(() =>
+  waitlist.value.filter(w => w.estado === 'waiting').length
 );
 
 const filteredBookings = computed(() => {
@@ -1635,6 +1757,18 @@ const syncData = (rid) => {
   unsubs.push(
     onSnapshot(qMesas, (snap) => {
       mesas.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    })
+  );
+
+  const qWaitlist = query(
+    collection(db, 'waitlist'),
+    where('restaurant_id', '==', rid),
+    orderBy('fecha', 'asc'),
+    orderBy('creado_en', 'asc')
+  );
+  unsubs.push(
+    onSnapshot(qWaitlist, (snap) => {
+      waitlist.value = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     })
   );
 };
@@ -1989,6 +2123,7 @@ const openProfile = async (restaurant) => {
     modo_confirmacion:  restaurant.modo_confirmacion || 'auto',
     pausa_emails:       restaurant.pausa_emails      === true,
     color_widget:       restaurant.color_widget      || '#000000',
+    google_maps_url:    restaurant.google_maps_url   || '',
     horarios: {
       comida:    { inicio: h.comida?.inicio ?? '13:00', fin: h.comida?.fin ?? '17:00' },
       cena:      { inicio: h.cena?.inicio   ?? '20:00', fin: h.cena?.fin   ?? '00:00' },
@@ -2064,6 +2199,7 @@ const saveProfile = async () => {
       modo_confirmacion: profileForm.value.modo_confirmacion || 'auto',
       pausa_emails:      profileForm.value.pausa_emails      === true,
       color_widget:      profileForm.value.color_widget      || '#000000',
+      google_maps_url:   profileForm.value.google_maps_url  || '',
       horarios:          profileForm.value.horarios          ?? DEFAULT_HORARIOS,
     };
     // Plan y estado activo: solo superadmin puede modificarlos
@@ -2166,6 +2302,43 @@ const openAddUserModal = () => {
 
 const closeAddUserModal = () => {
   addUserModal.value = { show: false, email: '', role: 'admin', saving: false, result: null };
+};
+
+// ─── SaaS metrics ────────────────────────────────────
+const loadSaasMetrics = async () => {
+  saasMetricsLoading.value = true;
+  try {
+    const fn  = httpsCallable(fns, 'getSaasMetrics');
+    const res = await fn({});
+    saasMetrics.value = res.data;
+  } catch (e) {
+    alert('Error al cargar métricas: ' + (e?.message || e));
+  } finally {
+    saasMetricsLoading.value = false;
+  }
+};
+
+// ─── Waitlist management ─────────────────────────────
+const removeWaitlistEntry = async (entry) => {
+  if (!confirm(`¿Eliminar a ${entry.nombre} de la lista de espera?`)) return;
+  try {
+    await deleteDoc(doc(db, 'waitlist', entry.id));
+  } catch (e) {
+    alert('Error al eliminar: ' + (e?.message || e));
+  }
+};
+
+// ─── Blacklist ────────────────────────────────────────
+const blacklistCustomer = async (customer) => {
+  const motivo = prompt(`¿Motivo para bloquear a ${customer.nombre} (${customer.email})?`, 'No-show reiterado');
+  if (motivo === null) return; // cancelled
+  try {
+    const fn = httpsCallable(fns, 'addToBlacklist');
+    await fn({ email: customer.email, motivo: motivo || 'No-show reiterado', restaurant_id: currentRestaurantId.value });
+    alert(`✓ ${customer.email} añadido a la blacklist. No podrá hacer nuevas reservas.`);
+  } catch (e) {
+    alert('Error: ' + (e?.message || e));
+  }
 };
 
 // ─── iCal export ─────────────────────────────────────
@@ -3730,5 +3903,70 @@ const requestOwnPasswordReset = async () => {
 .billing-portal-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .billing-portal-hint {
   font-size: 0.7rem; color: #999; text-align: center; line-height: 1.5;
+}
+
+/* ── SaaS Metrics strip ───────────────────────────── */
+.saas-metrics-strip {
+  display: flex; flex-wrap: wrap; gap: 0.75rem;
+  background: #f9f9f9; border: 1px solid #e5e5e5;
+  border-radius: 8px; padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.saas-metric {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0.2rem; min-width: 90px;
+  background: #fff; border: 1px solid #ececec;
+  border-radius: 6px; padding: 0.625rem 1rem;
+}
+.sm-num {
+  font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: #111;
+}
+.sm-lbl {
+  font-size: 0.65rem; font-weight: 600; color: #888;
+  text-transform: uppercase; letter-spacing: 0.07em; text-align: center;
+}
+
+/* ── Blacklist button ─────────────────────────────── */
+.bl-btn {
+  background: none; border: 1px solid #fca5a5;
+  border-radius: 4px; padding: 0.25rem 0.5rem;
+  font-size: 0.85rem; cursor: pointer; transition: background 0.15s;
+  line-height: 1;
+}
+.bl-btn:hover { background: #fee2e2; }
+
+/* ── Waitlist view ────────────────────────────────── */
+.wl-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.wl-row {
+  display: flex; align-items: stretch;
+  background: #fff; border: 1px solid #e5e5e5;
+  border-radius: 8px; overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.wl-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.wl-row--waiting  { border-left: 3px solid #f59e0b; }
+.wl-row--notified { border-left: 3px solid #3b82f6; }
+.wl-row--expired  { border-left: 3px solid #d1d5db; opacity: 0.65; }
+.wl-bar { width: 3px; flex-shrink: 0; }
+.wl-body { flex: 1; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.375rem; }
+.wl-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.wl-identity { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.wl-name { font-size: 0.9rem; font-weight: 700; }
+.wl-pax-pill {
+  font-size: 0.68rem; font-weight: 700; background: #f3f4f6;
+  border-radius: 999px; padding: 0.1rem 0.5rem; color: #555;
+}
+.wl-time-block { display: flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; }
+.wl-meta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.wl-estado-badge {
+  font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.5rem;
+  border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.wl-estado-badge--waiting  { background: #fef3c7; color: #92400e; }
+.wl-estado-badge--notified { background: #dbeafe; color: #1e40af; }
+.wl-estado-badge--expired  { background: #f3f4f6; color: #6b7280; }
+.wl-actions {
+  display: flex; align-items: center;
+  padding: 0 0.875rem; border-left: 1px solid #f3f4f6;
 }
 </style>

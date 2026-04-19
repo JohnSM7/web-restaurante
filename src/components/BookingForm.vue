@@ -23,8 +23,17 @@
 
     <template v-else>
 
+      <!-- Language selector -->
+      <div class="lang-switcher">
+        <button v-for="(l, code) in LANGS" :key="code"
+          @click="currentLang = code"
+          :class="['lang-btn', currentLang === code && 'lang-btn--active']">
+          {{ l.lang }}
+        </button>
+      </div>
+
       <header class="booking-header">
-        <p class="booking-eyebrow">Reservation</p>
+        <p class="booking-eyebrow">{{ t.reserve }}</p>
         <h1 class="booking-title">
           Mesa para <em>{{ paxTitle }}?</em>
         </h1>
@@ -169,11 +178,26 @@
         </label>
       </fieldset>
 
+      <!-- ── Waitlist (sin disponibilidad) ── -->
+      <div v-if="noAvailability && form.fecha && form.nombre && form.email" class="waitlist-block">
+        <div v-if="!waitlistDone">
+          <p class="waitlist-title">{{ t.waitlistTitle }}</p>
+          <p class="waitlist-sub">{{ t.waitlistSub }}</p>
+          <button type="button" @click="joinWaitlist" :disabled="waitlistSending" class="waitlist-btn">
+            <span v-if="waitlistSending" class="submit-spinner"></span>
+            {{ waitlistSending ? t.waitlistJoining : t.waitlistJoin }}
+          </button>
+        </div>
+        <div v-else class="waitlist-success">
+          ✓ {{ t.waitlistDone }}
+        </div>
+      </div>
+
       <!-- ── Submit ── -->
-      <div class="form-submit-area">
+      <div class="form-submit-area" v-if="!noAvailability">
         <button type="submit" :disabled="submitting" class="submit-btn">
           <span v-if="submitting" class="submit-spinner"></span>
-          {{ submitting ? 'ENVIANDO SOLICITUD…' : 'CONFIRMAR RESERVA' }}
+          {{ submitting ? t.submitting.toUpperCase() : t.submit.toUpperCase() }}
         </button>
         <p class="form-legal">
           Al confirmar, aceptas nuestra
@@ -200,6 +224,49 @@ import {
 } from '../lib/reservationUtils.ts';
 
 const createReservaFn = httpsCallable(fns, 'createReserva');
+const joinWaitlistFn  = httpsCallable(fns, 'joinWaitlist');
+
+// ─── i18n ────────────────────────────────────────────────────────────────────
+const LANGS = {
+  es: {
+    lang: 'ES', reserve: 'Reservar mesa', name: 'Nombre *', email: 'Email *', phone: 'Teléfono *',
+    date: 'Fecha *', guests: 'Comensales', time: 'Hora', notes: 'Notas',
+    submit: 'Confirmar reserva', submitting: 'Enviando…',
+    terms: 'Acepto recibir comunicaciones de marketing',
+    noSlots: 'Sin disponibilidad para este día.',
+    waitlistTitle: 'Unirse a la lista de espera',
+    waitlistSub: 'Si se cancela una reserva, te avisaremos por email.',
+    waitlistJoin: 'Apuntarme a la lista de espera',
+    waitlistJoining: 'Guardando…',
+    waitlistDone: 'Estás en la lista. Te avisaremos si se libera una mesa.',
+  },
+  en: {
+    lang: 'EN', reserve: 'Book a table', name: 'Name *', email: 'Email *', phone: 'Phone *',
+    date: 'Date *', guests: 'Guests', time: 'Time', notes: 'Notes',
+    submit: 'Confirm booking', submitting: 'Sending…',
+    terms: 'I agree to receive marketing communications',
+    noSlots: 'No availability for this day.',
+    waitlistTitle: 'Join the waiting list',
+    waitlistSub: 'If a reservation is cancelled, we will notify you by email.',
+    waitlistJoin: 'Join the waiting list',
+    waitlistJoining: 'Saving…',
+    waitlistDone: 'You\'re on the list. We\'ll notify you if a table becomes available.',
+  },
+  fr: {
+    lang: 'FR', reserve: 'Réserver une table', name: 'Nom *', email: 'Email *', phone: 'Téléphone *',
+    date: 'Date *', guests: 'Couverts', time: 'Heure', notes: 'Notes',
+    submit: 'Confirmer la réservation', submitting: 'Envoi…',
+    terms: 'J\'accepte de recevoir des communications marketing',
+    noSlots: 'Aucune disponibilité pour ce jour.',
+    waitlistTitle: 'Rejoindre la liste d\'attente',
+    waitlistSub: 'Si une réservation est annulée, nous vous préviendrons par email.',
+    waitlistJoin: 'S\'inscrire sur la liste d\'attente',
+    waitlistJoining: 'Enregistrement…',
+    waitlistDone: 'Vous êtes sur la liste. Nous vous notifierons si une table se libère.',
+  },
+};
+const currentLang = ref('es');
+const t = computed(() => LANGS[currentLang.value]);
 
 const props = defineProps({
   restaurantId: { type: String, default: 'the-editorial' }
@@ -276,6 +343,11 @@ onMounted(async () => {
 // ─── State ───────────────────────────────────────────
 const submitting       = ref(false);
 const bookingResult    = ref(null); // { confirmed, mesa, hora, pax } | { confirmed: false }
+
+// ─── Waitlist ─────────────────────────────────────────────────────────────────
+const showWaitlist     = ref(false);
+const waitlistSending  = ref(false);
+const waitlistDone     = ref(false);
 const errorMsg         = ref('');
 const successRef       = ref(null);
 const showHoraError    = ref(false);
@@ -566,6 +638,39 @@ const submitBooking = async () => {
     submitting.value = false;
   }
 };
+
+// ── Computed: true when a date is selected but ALL slots are unavailable ──────
+const noAvailability = computed(() => {
+  if (!form.value.fecha) return false;
+  const slots = computedSlots.value;
+  return slots.length > 0 && slots.every(s => !s.available);
+});
+
+// ── Waitlist ─────────────────────────────────────────────────────────────────
+const joinWaitlist = async () => {
+  waitlistSending.value = true;
+  try {
+    await joinWaitlistFn({
+      restaurant_id: resolvedId.value,
+      nombre:        form.value.nombre.trim(),
+      email:         form.value.email.trim(),
+      telefono:      form.value.telefono.trim(),
+      fecha:         form.value.fecha,
+      hora:          form.value.hora || '20:00',
+      comensales:    form.value.pax,
+    });
+    waitlistDone.value = true;
+  } catch (err) {
+    const code = err?.code ?? '';
+    if (code === 'already-exists') {
+      waitlistDone.value = true; // already on list, treat as success
+    } else {
+      errorMsg.value = err.message || 'Error al unirse a la lista de espera.';
+    }
+  } finally {
+    waitlistSending.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -839,5 +944,51 @@ const submitBooking = async () => {
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: none; }
+}
+
+/* ── Language switcher ────────────────────────────── */
+.lang-switcher {
+  display: flex; gap: 0.375rem;
+  justify-content: flex-end; margin-bottom: 1.5rem;
+}
+.lang-btn {
+  background: none; border: 1px solid #e0e0e0;
+  border-radius: 3px; padding: 0.2rem 0.5rem;
+  font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.1em; cursor: pointer; color: #aaa;
+  transition: all 0.15s;
+}
+.lang-btn--active {
+  background: #000; color: #fff; border-color: #000;
+}
+
+/* ── Waitlist ────────────────────────────────────── */
+.waitlist-block {
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  animation: fadeInUp 0.3s ease both;
+}
+.waitlist-title {
+  font-size: 0.88rem; font-weight: 700; margin-bottom: 0.375rem;
+}
+.waitlist-sub {
+  font-size: 0.75rem; color: #555; margin-bottom: 1rem; line-height: 1.6;
+}
+.waitlist-btn {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: #0ea5e9; color: #fff;
+  border: none; border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.waitlist-btn:hover:not(:disabled) { opacity: 0.85; }
+.waitlist-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.waitlist-success {
+  font-size: 0.82rem; font-weight: 700; color: #0369a1;
 }
 </style>

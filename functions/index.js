@@ -11,6 +11,9 @@ const { PLANS, isOverLimit, isNearLimit }    = require("./plans");
 const { getTurnTime, findBestTable }         = require("./reservationUtils");
 
 initializeApp();
+
+// Phase 5 functions — re-exported after initializeApp
+Object.assign(exports, require("./phase5"));
 const db     = getFirestore();
 const auth   = getAuth();
 const resend = new Resend(process.env.RESEND_API_KEY || "re_your_test_key");

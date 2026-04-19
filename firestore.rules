@@ -86,5 +86,18 @@ service cloud.firestore {
     match /system_logs/{logId} {
       allow read, write: if isSuperAdmin();
     }
+
+    // Waitlist — public create (booking form), admin/staff read
+    match /waitlist/{docId} {
+      allow create: if request.resource.data.restaurant_id != null;
+      allow read:   if isRestaurantMember(resource.data.restaurant_id) || isSuperAdmin();
+      allow update, delete: if isRestaurantAdmin(resource.data.restaurant_id) || isSuperAdmin();
+    }
+
+    // Blacklist — only admin SDK writes, admin reads
+    match /blacklist/{docId} {
+      allow read:  if isRestaurantAdmin(resource.data.restaurant_id) || isSuperAdmin();
+      allow write: if false; // Cloud Functions admin SDK only
+    }
   }
 }
