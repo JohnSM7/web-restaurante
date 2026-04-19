@@ -126,6 +126,11 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
             MAPA SALA
           </button>
+          <button v-if="!isStaff" @click="nav('analytics')"
+            :class="['nav-btn', currentView === 'analytics' && 'nav-btn--active']">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            ANALYTICS
+          </button>
           <!-- Configuración: visible para admin (no superadmin, no staff) -->
           <button v-if="!isStaff && !isSuperAdmin" @click="openOwnProfile()"
             :class="['nav-btn', currentView === 'restaurant-profile' && 'nav-btn--active']">
@@ -166,8 +171,12 @@
           </button>
           <h2 class="topbar-title">{{ viewTitle }}</h2>
         </div>
-        <div v-if="isSuperAdmin" class="topbar-right">
-          <select v-model="selectedRestaurantId" @change="switchRestaurant" class="res-switcher">
+        <div class="topbar-right">
+          <!-- New booking notification bell -->
+          <button v-if="newPendingAlert" @click="goToPendingAlert" class="notif-bell" title="Nueva reserva pendiente">
+            🔔 <span class="notif-count">{{ newPendingAlert }}</span>
+          </button>
+          <select v-if="isSuperAdmin" v-model="selectedRestaurantId" @change="switchRestaurant" class="res-switcher">
             <option value="">— Seleccionar restaurante —</option>
             <option v-for="r in restaurants" :key="r.id" :value="r.id">{{ r.nombre }}</option>
           </select>
@@ -490,6 +499,89 @@
             </div>
           </article>
         </div>
+      </section>
+
+      <!-- ── VIEW: ANALYTICS ── -->
+      <section v-else-if="currentView === 'analytics' && currentRestaurantId" class="view-section">
+        <div class="view-header">
+          <div>
+            <h3 class="view-heading">Analytics</h3>
+            <p class="view-sub">Estadísticas de las últimas 4 semanas</p>
+          </div>
+          <button @click="exportCSV" class="export-csv-btn" title="Exportar reservas a CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar CSV
+          </button>
+        </div>
+
+        <!-- Summary KPIs -->
+        <div class="an-kpi-strip">
+          <div class="an-kpi">
+            <span class="an-k-num">{{ analyticsKpis.totalMonth }}</span>
+            <span class="an-k-lbl">Reservas este mes</span>
+          </div>
+          <div class="an-kpi">
+            <span class="an-k-num">{{ analyticsKpis.totalPax }}</span>
+            <span class="an-k-lbl">Pax este mes</span>
+          </div>
+          <div class="an-kpi">
+            <span class="an-k-num">{{ analyticsKpis.confirmRate }}%</span>
+            <span class="an-k-lbl">Tasa confirmación</span>
+          </div>
+          <div class="an-kpi">
+            <span class="an-k-num">{{ analyticsKpis.noShowRate }}%</span>
+            <span class="an-k-lbl">Tasa no-show</span>
+          </div>
+          <div class="an-kpi">
+            <span class="an-k-num">{{ analyticsKpis.avgPax }}</span>
+            <span class="an-k-lbl">Pax por reserva</span>
+          </div>
+          <div class="an-kpi">
+            <span class="an-k-num">{{ analyticsKpis.topHour }}</span>
+            <span class="an-k-lbl">Hora pico</span>
+          </div>
+        </div>
+
+        <!-- Weekly bar chart (last 4 weeks by day) -->
+        <div class="an-card">
+          <h4 class="an-card-title">Reservas por día — últimas 4 semanas</h4>
+          <div class="an-chart">
+            <div v-for="(bar, idx) in weeklyChart" :key="idx" class="an-bar-wrap" :title="`${bar.label}: ${bar.count} reservas`">
+              <div class="an-bar" :style="{ height: bar.count ? Math.max(4, (bar.count / weeklyChartMax) * 120) + 'px' : '2px' }"></div>
+              <span class="an-bar-lbl">{{ bar.label }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hourly heatmap -->
+        <div class="an-card">
+          <h4 class="an-card-title">Distribución por hora del día</h4>
+          <div class="an-heatmap">
+            <div v-for="slot in hourlyHeatmap" :key="slot.hour" class="an-heat-cell"
+              :style="{ opacity: slot.count ? 0.15 + (slot.count / hourlyMax) * 0.85 : 0.06 }"
+              :title="`${slot.hour}: ${slot.count} reservas`">
+              <span class="an-heat-hour">{{ slot.hour }}</span>
+              <span class="an-heat-num">{{ slot.count }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top customers -->
+        <div class="an-card">
+          <h4 class="an-card-title">Clientes más frecuentes</h4>
+          <div class="an-top-list">
+            <div v-for="(c, i) in topCustomers" :key="c.email" class="an-top-row">
+              <span class="an-top-rank">{{ i + 1 }}</span>
+              <div class="an-top-info">
+                <strong>{{ c.nombre }}</strong>
+                <span>{{ c.email }}</span>
+              </div>
+              <span class="an-top-visits">{{ c.count }} visitas</span>
+            </div>
+            <p v-if="!topCustomers.length" class="an-empty">Sin datos suficientes aún.</p>
+          </div>
+        </div>
+
       </section>
 
       <!-- ── VIEW: RESTAURANT PROFILE ── -->
@@ -1147,6 +1239,10 @@ const onboardingUrlCopied = ref(false);
 // ─── Billing portal ───────────────────────────────
 const billingPortalLoading = ref(false);
 
+// ─── New booking notification ─────────────────────
+const newPendingAlert     = ref(0);   // count of new pending since last visit
+let   _lastSeenPending    = 0;        // track to detect new ones
+
 // ─── Filters ─────────────────────────────────────────
 const filterDate    = ref('');   // empty = todas las fechas
 const filterStatus  = ref('todas');
@@ -1190,6 +1286,7 @@ const viewTitle = computed(() => ({
   'reservas':            currentRestaurantName.value || 'RESERVAS',
   'customers':           'CRM CLIENTES',
   'mapa':                'MAPA DE SALA',
+  'analytics':           'ANALYTICS',
   'saas-clients':        'CLIENTES SAAS',
   'restaurant-profile':  profileRestaurant.value?.nombre ?? 'PERFIL',
 }[currentView.value] ?? 'PANEL DE CONTROL'));
@@ -1253,6 +1350,88 @@ const kpis = computed(() => {
     pax:         day.reduce((sum, r) => sum + (Number(r.comensales) || 0), 0),
     fechaLabel:  esHoy ? 'HOY' : new Date(targetDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }),
   };
+});
+
+// ── Analytics computeds ──────────────────────────
+const analyticsKpis = computed(() => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const month = reservas.value.filter(r => {
+    const d = r.fecha?.toDate ? r.fecha.toDate() : new Date(r.fecha);
+    return d >= monthStart;
+  });
+  const confirmed   = month.filter(r => r.estado === 'confirmada' || r.estado === 'no-show');
+  const noShows     = month.filter(r => r.estado === 'no-show');
+  const totalPax    = month.reduce((s, r) => s + (Number(r.comensales) || 0), 0);
+  const confirmRate = month.length ? Math.round((confirmed.length / month.length) * 100) : 0;
+  const noShowRate  = confirmed.length ? Math.round((noShows.length / confirmed.length) * 100) : 0;
+  const avgPax      = month.length ? (totalPax / month.length).toFixed(1) : '—';
+
+  // Top hour
+  const hourCounts = {};
+  month.forEach(r => {
+    if (r.hora) {
+      const h = r.hora.substring(0, 5);
+      hourCounts[h] = (hourCounts[h] || 0) + 1;
+    }
+  });
+  const topHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
+
+  return { totalMonth: month.length, totalPax, confirmRate, noShowRate, avgPax, topHour };
+});
+
+const weeklyChart = computed(() => {
+  const days = [];
+  const now  = new Date();
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const lbl = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' });
+    days.push({ key, label: lbl, count: 0 });
+  }
+  reservas.value.forEach(r => {
+    const d = r.fecha?.toDate ? r.fecha.toDate() : new Date(r.fecha);
+    const key = d.toISOString().split('T')[0];
+    const slot = days.find(s => s.key === key);
+    if (slot) slot.count++;
+  });
+  return days;
+});
+
+const weeklyChartMax = computed(() =>
+  Math.max(1, ...weeklyChart.value.map(d => d.count))
+);
+
+const hourlyHeatmap = computed(() => {
+  const slots = [];
+  for (let h = 12; h <= 23; h++) {
+    ['00', '30'].forEach(m => {
+      const label = `${String(h).padStart(2,'0')}:${m}`;
+      slots.push({ hour: label, count: 0 });
+    });
+  }
+  reservas.value.forEach(r => {
+    if (r.hora) {
+      const slot = slots.find(s => s.hour === r.hora.substring(0, 5));
+      if (slot) slot.count++;
+    }
+  });
+  return slots;
+});
+
+const hourlyMax = computed(() =>
+  Math.max(1, ...hourlyHeatmap.value.map(s => s.count))
+);
+
+const topCustomers = computed(() => {
+  const map = new Map();
+  reservas.value.forEach(r => {
+    if (!r.email) return;
+    if (!map.has(r.email)) map.set(r.email, { nombre: r.nombre_cliente, email: r.email, count: 0 });
+    map.get(r.email).count++;
+  });
+  return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 10);
 });
 
 const uniqueCustomers = computed(() => {
@@ -1405,6 +1584,14 @@ watch([filterDate, filterStatus, searchQuery, currentRestaurantId], () => {
   bookingsPage.value = 1;
 });
 
+// New pending booking notification
+watch(pendingCount, (newVal) => {
+  if (newVal > _lastSeenPending && currentView.value !== 'reservas') {
+    newPendingAlert.value = newVal - _lastSeenPending;
+  }
+  _lastSeenPending = newVal;
+});
+
 // ─── Auth lifecycle ───────────────────────────────────
 onMounted(() => {
   unsubAuth = onAuthStateChanged(auth, async (u) => {
@@ -1455,6 +1642,41 @@ const nav = (view) => {
 
 const switchRestaurant = () => {
   if (selectedRestaurantId.value) syncData(selectedRestaurantId.value);
+};
+
+const goToPendingAlert = () => {
+  newPendingAlert.value = 0;
+  filterStatus.value    = 'pendiente';
+  nav('reservas');
+};
+
+// ─── CSV Export ────────────────────────────────────────
+const exportCSV = () => {
+  const headers = ['Nombre','Email','Teléfono','Fecha','Hora','Comensales','Estado','Mesa','Comentarios'];
+  const rows    = filteredBookings.value.map(r => {
+    const fecha = (() => {
+      try { return (r.fecha?.toDate ? r.fecha.toDate() : new Date(r.fecha)).toLocaleDateString('es-ES'); } catch { return r.fecha ?? ''; }
+    })();
+    return [
+      r.nombre_cliente ?? '',
+      r.email          ?? '',
+      r.telefono       ?? '',
+      fecha,
+      r.hora           ?? '',
+      r.comensales     ?? '',
+      r.estado         ?? '',
+      getMesaNombre(r.mesa_id) ?? '',
+      (r.comentarios   ?? '').replace(/,/g, ';'),
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv  = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `reservas_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
 const selectAndGo = (id) => {
@@ -3015,6 +3237,125 @@ const requestOwnPasswordReset = async () => {
   /* Tiempo: aún en fila pero reducido */
   .prof-time-input { font-size: 0.75rem; padding: 0.35rem 0.4rem; }
 }
+
+/* ── Notification Bell ───────────────────────────── */
+.notif-bell {
+  position: relative;
+  background: none; border: none; cursor: pointer;
+  font-size: 1.1rem; padding: 0.25rem 0.5rem;
+  animation: bellShake 1s ease infinite;
+}
+@keyframes bellShake {
+  0%,100% { transform: rotate(0); }
+  20%      { transform: rotate(-12deg); }
+  40%      { transform: rotate(12deg); }
+  60%      { transform: rotate(-8deg); }
+  80%      { transform: rotate(8deg); }
+}
+.notif-count {
+  position: absolute; top: -2px; right: -2px;
+  background: #dc2626; color: #fff;
+  font-size: 0.5rem; font-weight: 800;
+  width: 14px; height: 14px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Export CSV ──────────────────────────────────── */
+.export-csv-btn {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: #fff; border: 1.5px solid #e0e0e0;
+  border-radius: 4px; padding: 0.5rem 0.875rem;
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.06em; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.export-csv-btn:hover { background: #f5f5f5; border-color: #bbb; }
+
+/* ── Analytics ───────────────────────────────────── */
+.an-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+.an-kpi {
+  background: #fff; border: 1px solid #eee; border-radius: 8px;
+  padding: 1rem; display: flex; flex-direction: column; gap: 0.3rem;
+}
+.an-k-num {
+  font-size: 1.6rem; font-weight: 800; line-height: 1;
+}
+.an-k-lbl {
+  font-size: 0.62rem; font-weight: 700; color: #aaa;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.an-card {
+  background: #fff; border: 1px solid #eee; border-radius: 8px;
+  padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;
+}
+.an-card-title {
+  font-size: 0.72rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: #555; margin-bottom: 1.25rem;
+}
+
+/* Bar chart */
+.an-chart {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 140px; padding-bottom: 24px;
+  overflow-x: auto;
+}
+.an-bar-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; flex: 1; min-width: 18px;
+}
+.an-bar {
+  background: #000; border-radius: 2px 2px 0 0;
+  width: 100%; transition: height 0.3s ease;
+  min-height: 2px;
+}
+.an-bar-lbl {
+  font-size: 0.45rem; color: #bbb;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  height: 20px; overflow: hidden;
+  display: flex; align-items: center;
+}
+
+/* Heatmap */
+.an-heatmap {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.an-heat-cell {
+  background: #000; border-radius: 4px;
+  width: 52px; padding: 0.3rem 0.4rem;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1px;
+  transition: opacity 0.2s;
+}
+.an-heat-hour { font-size: 0.55rem; color: #fff; font-weight: 700; }
+.an-heat-num  { font-size: 0.7rem; color: #fff; font-weight: 800; }
+
+/* Top customers */
+.an-top-list { display: flex; flex-direction: column; gap: 0.625rem; }
+.an-top-row {
+  display: flex; align-items: center; gap: 0.875rem;
+  padding: 0.625rem 0.75rem; background: #fafafa;
+  border-radius: 6px;
+}
+.an-top-rank {
+  font-size: 0.65rem; font-weight: 800; color: #aaa;
+  width: 18px; text-align: center; flex-shrink: 0;
+}
+.an-top-info { flex: 1; display: flex; flex-direction: column; }
+.an-top-info strong { font-size: 0.82rem; }
+.an-top-info span   { font-size: 0.7rem; color: #999; }
+.an-top-visits {
+  font-size: 0.72rem; font-weight: 800;
+  background: #000; color: #fff;
+  padding: 0.2em 0.6em; border-radius: 100px;
+}
+.an-empty { font-size: 0.78rem; color: #aaa; text-align: center; padding: 1rem; }
 
 /* ── Onboarding Wizard ───────────────────────────── */
 .onboarding-backdrop {
