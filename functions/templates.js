@@ -222,6 +222,47 @@ module.exports = {
     </div>
   `,
 
+  // 5b. BIENVENIDA AUTO-REGISTRO (nuevo restaurante self-serve)
+  bienvenidaRegistro: (email, nombreRestaurante, dashboardUrl) => `
+    <div style="${baseStyle}">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="font-size: 22px; font-weight: 300; letter-spacing: 2px; text-transform: uppercase; margin:0;">
+          TANE <span style="font-style: italic; color: #777;">Booking</span>
+        </h1>
+        <p style="font-size: 11px; color: #aaa; letter-spacing: 0.15em; margin-top: 4px;">PLATAFORMA DE RESERVAS</p>
+      </div>
+
+      <h2 style="font-size: 20px; font-weight: 400; margin: 0 0 8px;">¡Bienvenido a Tane Booking!</h2>
+      <p style="color: #555; margin: 0 0 20px;">
+        Tu cuenta para <strong>${nombreRestaurante}</strong> ya está activa. Tienes <strong>14 días de prueba gratuita</strong> para explorar todas las funcionalidades.
+      </p>
+
+      <div style="background: #f7f7f7; border-radius: 8px; padding: 20px; margin: 0 0 28px;">
+        <p style="margin: 0 0 6px; font-size: 13px;"><strong>Email:</strong> ${email}</p>
+        <p style="margin: 0 0 6px; font-size: 13px;"><strong>Restaurante:</strong> ${nombreRestaurante}</p>
+        <p style="margin: 0; font-size: 13px; color: #22c55e;"><strong>Plan Trial:</strong> 14 días gratuitos · sin tarjeta</p>
+      </div>
+
+      <p style="color: #555; margin: 0 0 20px;">Estos son tus próximos pasos para empezar a recibir reservas:</p>
+      <ol style="color: #555; padding-left: 20px; margin: 0 0 28px; line-height: 2;">
+        <li>Configura tu restaurante (horarios, contacto)</li>
+        <li>Añade tus mesas en el mapa de sala</li>
+        <li>Comparte tu enlace de reservas con tus clientes</li>
+      </ol>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${dashboardUrl}"
+          style="display: inline-block; background: #000; color: #fff; text-decoration: none;
+                 font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+                 padding: 14px 32px; border-radius: 4px;">
+          Ir al panel de gestión →
+        </a>
+      </div>
+
+      ${taneFooter}
+    </div>
+  `,
+
   // 5. RESTABLECIMIENTO DE CONTRASEÑA (staff/admin)
   restablecimientoContrasena: (email, resetLink, restaurante) => `
     <div style="${baseStyle}">

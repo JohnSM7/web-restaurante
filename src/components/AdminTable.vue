@@ -756,10 +756,14 @@
                   </div>
                   <p v-else class="plan-pro-msg">Estás en el plan máximo. ¡Gracias!</p>
                 </template>
-                <p v-else-if="planUsage.plan !== 'pro'" class="plan-upgrade-contact">
-                  Para actualizar el plan contacta con
-                  <a href="mailto:admin@tanesolutions.com">admin@tanesolutions.com</a>
-                </p>
+                <!-- Regular admin: billing portal button -->
+                <div v-else class="plan-self-serve">
+                  <button @click="openBillingPortal" :disabled="billingPortalLoading" class="billing-portal-btn">
+                    <span v-if="billingPortalLoading" class="btn-spinner"></span>
+                    {{ billingPortalLoading ? 'Redirigiendo…' : 'Gestionar suscripción →' }}
+                  </button>
+                  <p class="billing-portal-hint">Cambia de plan, actualiza tu tarjeta o cancela en cualquier momento.</p>
+                </div>
               </div>
 
               <div v-else-if="planUsageLoading" class="profile-loading">Cargando uso del plan…</div>
@@ -995,6 +999,58 @@
     </div>
   </Teleport>
 
+  <!-- ══ MODAL: Onboarding Wizard ══ -->
+  <Teleport to="body">
+    <div v-if="showOnboarding" class="modal-backdrop onboarding-backdrop" role="dialog" aria-modal="true">
+      <div class="onboarding-box">
+        <!-- Step indicator -->
+        <div class="ob-steps">
+          <div v-for="n in 3" :key="n" :class="['ob-step-dot', n === onboardingStep ? 'ob-step-dot--active' : n < onboardingStep ? 'ob-step-dot--done' : '']"></div>
+        </div>
+
+        <!-- Step 1: Bienvenida -->
+        <template v-if="onboardingStep === 1">
+          <div class="ob-icon">🍽️</div>
+          <h2 class="ob-title">¡Bienvenido a Tane Booking!</h2>
+          <p class="ob-desc">En menos de 2 minutos tendrás tu sistema de reservas online listo. Te guiamos paso a paso.</p>
+          <div class="ob-checklist">
+            <div class="ob-check-item"><span class="ob-check">①</span> Confirma el nombre de tu restaurante</div>
+            <div class="ob-check-item"><span class="ob-check">②</span> Añade tus primeras mesas</div>
+            <div class="ob-check-item"><span class="ob-check">③</span> Comparte el enlace de reservas</div>
+          </div>
+          <button @click="onboardingStep = 2" class="ob-btn-primary">Empezar →</button>
+        </template>
+
+        <!-- Step 2: Ir a mesas -->
+        <template v-if="onboardingStep === 2">
+          <div class="ob-icon">🗺️</div>
+          <h2 class="ob-title">Configura tu sala</h2>
+          <p class="ob-desc">Añade tus mesas en el <strong>Mapa de Sala</strong> para que el sistema pueda asignarlas automáticamente al hacer reservas.</p>
+          <p class="ob-tip">💡 Puedes añadirlas ahora o después desde el panel.</p>
+          <div class="ob-row">
+            <button @click="onboardingStep = 3" class="ob-btn-ghost">Hacerlo después</button>
+            <button @click="goToMapFromOnboarding" class="ob-btn-primary">Ir al mapa de sala →</button>
+          </div>
+        </template>
+
+        <!-- Step 3: Enlace de reservas -->
+        <template v-if="onboardingStep === 3">
+          <div class="ob-icon">🔗</div>
+          <h2 class="ob-title">¡Todo listo!</h2>
+          <p class="ob-desc">Comparte este enlace con tus clientes para que puedan hacer reservas online:</p>
+          <div class="ob-url-wrap">
+            <code class="ob-url">/booking?id={{ currentRestaurantId }}</code>
+            <button @click="copyOnboardingUrl" class="ob-copy-btn">
+              {{ onboardingUrlCopied ? '✓ Copiado' : 'Copiar' }}
+            </button>
+          </div>
+          <p class="ob-tip">También puedes encontrar el enlace en Configuración → URLs del sistema.</p>
+          <button @click="finishOnboarding" class="ob-btn-primary">Ir al panel →</button>
+        </template>
+      </div>
+    </div>
+  </Teleport>
+
   <!-- ══ MODAL: Confirmar Borrado ══ -->
   <Teleport to="body">
     <div v-if="deleteModal.show" class="modal-backdrop" @click.self="deleteModal.show = false" role="dialog" aria-modal="true">
@@ -1082,6 +1138,14 @@ const copiedUrl         = ref('');
 const addUserModal      = ref({ show: false, email: '', role: 'admin', saving: false, result: null });
 const resettingPwd  = reactive({}); // uid → 'sending' | 'done' | 'error'
 const ownPwdReset   = ref({ loading: false, sent: false, error: false });
+
+// ─── Onboarding wizard ────────────────────────────
+const showOnboarding      = ref(false);
+const onboardingStep      = ref(1);
+const onboardingUrlCopied = ref(false);
+
+// ─── Billing portal ───────────────────────────────
+const billingPortalLoading = ref(false);
 
 // ─── Filters ─────────────────────────────────────────
 const filterDate    = ref('');   // empty = todas las fechas
@@ -1355,6 +1419,11 @@ onMounted(() => {
           currentView.value = 'saas-clients';
         } else if (userProfile.value.restaurant_id) {
           syncData(userProfile.value.restaurant_id);
+          // Show onboarding wizard for new admins that haven't completed it
+          if (!userProfile.value.onboarding_done) {
+            showOnboarding.value  = true;
+            onboardingStep.value  = 1;
+          }
         }
       } else if (u.email === 'admin@tanesolutions.com') {
         // Bootstrap superadmin on first login
@@ -1805,6 +1874,46 @@ const openAddUserModal = () => {
 
 const closeAddUserModal = () => {
   addUserModal.value = { show: false, email: '', role: 'admin', saving: false, result: null };
+};
+
+// ─── Onboarding ──────────────────────────────────────
+const goToMapFromOnboarding = () => {
+  onboardingStep.value = 3;
+  setTimeout(() => nav('mapa'), 300);
+};
+
+const copyOnboardingUrl = async () => {
+  const url = `${window.location.origin}/booking?id=${currentRestaurantId.value}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    onboardingUrlCopied.value = true;
+    setTimeout(() => { onboardingUrlCopied.value = false; }, 2000);
+  } catch {
+    alert('URL: ' + url);
+  }
+};
+
+const finishOnboarding = async () => {
+  showOnboarding.value = false;
+  try {
+    await updateDoc(doc(db, 'users', user.value.uid), { onboarding_done: true });
+    if (userProfile.value) userProfile.value.onboarding_done = true;
+  } catch (e) {
+    console.warn('[onboarding] no se pudo marcar onboarding_done:', e);
+  }
+};
+
+// ─── Billing portal ──────────────────────────────────
+const openBillingPortal = async () => {
+  billingPortalLoading.value = true;
+  try {
+    const fn  = httpsCallable(fns, 'createBillingPortalSession');
+    const res = await fn({ restaurant_id: currentRestaurantId.value });
+    window.location.href = res.data.url;
+  } catch (e) {
+    alert('No se pudo abrir el portal de facturación: ' + (e?.message || 'Error desconocido'));
+    billingPortalLoading.value = false;
+  }
 };
 
 // ─── Password reset (own account) ────────────────────
@@ -2905,5 +3014,120 @@ const requestOwnPasswordReset = async () => {
   .copy-btn  { width: 100%; text-align: center; }
   /* Tiempo: aún en fila pero reducido */
   .prof-time-input { font-size: 0.75rem; padding: 0.35rem 0.4rem; }
+}
+
+/* ── Onboarding Wizard ───────────────────────────── */
+.onboarding-backdrop {
+  background: rgba(0,0,0,0.75) !important;
+  backdrop-filter: blur(4px);
+}
+.onboarding-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  width: min(480px, 92vw);
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1.25rem;
+  text-align: center;
+  animation: slideUp 0.3s ease both;
+}
+@keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: none; } }
+
+.ob-steps {
+  display: flex; gap: 0.5rem;
+}
+.ob-step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #e0e0e0; transition: background 0.2s;
+}
+.ob-step-dot--active { background: #000; }
+.ob-step-dot--done   { background: #555; }
+
+.ob-icon { font-size: 2.5rem; line-height: 1; }
+.ob-title {
+  font-size: 1.25rem; font-weight: 800;
+  color: #111; margin: 0;
+}
+.ob-desc {
+  font-size: 0.82rem; color: #555;
+  line-height: 1.7; max-width: 360px;
+}
+.ob-tip {
+  font-size: 0.75rem; color: #888;
+  background: #f9f9f9; padding: 0.75rem 1rem;
+  border-radius: 6px; width: 100%;
+}
+.ob-checklist {
+  display: flex; flex-direction: column; gap: 0.625rem;
+  align-items: flex-start; width: 100%;
+}
+.ob-check-item {
+  font-size: 0.8rem; color: #333;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.ob-check {
+  font-size: 0.65rem; font-weight: 800;
+  background: #000; color: #fff;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.ob-url-wrap {
+  display: flex; align-items: center; gap: 0.625rem;
+  background: #f5f5f5; border-radius: 6px;
+  padding: 0.75rem 1rem; width: 100%;
+}
+.ob-url {
+  font-size: 0.75rem; color: #333; flex: 1;
+  word-break: break-all; text-align: left;
+}
+.ob-copy-btn {
+  flex-shrink: 0;
+  background: #000; color: #fff;
+  border: none; border-radius: 4px;
+  font-size: 0.7rem; font-weight: 700;
+  padding: 0.375rem 0.75rem; cursor: pointer;
+  letter-spacing: 0.05em; transition: opacity 0.15s;
+}
+.ob-copy-btn:hover { opacity: 0.8; }
+
+.ob-btn-primary {
+  background: #000; color: #fff;
+  border: none; border-radius: 4px;
+  padding: 0.875rem 2rem;
+  font-size: 0.78rem; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; transition: opacity 0.15s; width: 100%;
+}
+.ob-btn-primary:hover { opacity: 0.85; }
+.ob-btn-ghost {
+  background: transparent; color: #555;
+  border: 1.5px solid #ddd; border-radius: 4px;
+  padding: 0.875rem 1.5rem;
+  font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; transition: background 0.15s;
+}
+.ob-btn-ghost:hover { background: #f5f5f5; }
+.ob-row { display: flex; gap: 0.75rem; width: 100%; }
+.ob-row .ob-btn-primary { flex: 1; }
+
+/* ── Billing Portal ──────────────────────────────── */
+.plan-self-serve {
+  display: flex; flex-direction: column; gap: 0.625rem; margin-top: 0.5rem;
+}
+.billing-portal-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: #111; color: #fff;
+  border: none; border-radius: 4px;
+  font-size: 0.75rem; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; transition: opacity 0.15s; width: 100%;
+}
+.billing-portal-btn:hover:not(:disabled) { opacity: 0.82; }
+.billing-portal-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.billing-portal-hint {
+  font-size: 0.7rem; color: #999; text-align: center; line-height: 1.5;
 }
 </style>

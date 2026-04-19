@@ -1,0 +1,183 @@
+---
+import LayoutSaas from '../../layouts/LayoutSaas.astro';
+const updated = '19 de abril de 2026';
+---
+<LayoutSaas
+  title="Términos de uso — Tane Booking"
+  description="Términos y condiciones de uso de la plataforma Tane Booking para restaurantes."
+>
+
+<div class="legal-wrap">
+  <div class="legal-header">
+    <p class="legal-label">DOCUMENTO LEGAL</p>
+    <h1>Términos de uso</h1>
+    <p class="legal-updated">Última actualización: {updated}</p>
+  </div>
+
+  <div class="legal-body">
+
+    <h2>1. Objeto y partes</h2>
+    <p>
+      Estos Términos de Uso regulan el acceso y la utilización de la plataforma <strong>Tane Booking</strong>,
+      titularidad de <strong>Tane Solutions</strong> (en adelante, «la Empresa» o «nosotros»), con correo de
+      contacto <a href="mailto:admin@tanesolutions.com">admin@tanesolutions.com</a>.
+    </p>
+    <p>
+      Al crear una cuenta o utilizar cualquier funcionalidad del servicio, el usuario (en adelante, «el Cliente»)
+      acepta íntegramente estos Términos.
+    </p>
+
+    <h2>2. Descripción del servicio</h2>
+    <p>
+      Tane Booking es un sistema de gestión de reservas online para restaurantes y negocios de restauración.
+      Incluye, entre otras funcionalidades: formulario de reservas público, panel de administración, gestión de
+      mesas, notificaciones por email y recordatorios automáticos.
+    </p>
+
+    <h2>3. Registro y cuenta</h2>
+    <ul>
+      <li>Para acceder al panel de administración es necesario crear una cuenta con un email válido y una contraseña segura.</li>
+      <li>El Cliente es responsable de mantener la confidencialidad de sus credenciales.</li>
+      <li>No está permitido compartir accesos entre distintos restaurantes o negocios no relacionados.</li>
+      <li>La Empresa se reserva el derecho de suspender cuentas que incumplan estos Términos.</li>
+    </ul>
+
+    <h2>4. Período de prueba y suscripción</h2>
+    <ul>
+      <li>Los nuevos clientes disponen de <strong>14 días de prueba gratuita</strong> sin necesidad de tarjeta de crédito.</li>
+      <li>Al finalizar el período de prueba, el servicio requiere la contratación de un plan de pago para continuar.</li>
+      <li>Los precios actuales están disponibles en <a href="/precios">/precios</a>.</li>
+      <li>El pago se gestiona de forma segura a través de <strong>Stripe</strong>. La Empresa no almacena datos de tarjetas.</li>
+      <li>Las suscripciones se renuevan automáticamente. El Cliente puede cancelar en cualquier momento desde el panel de administración.</li>
+    </ul>
+
+    <h2>5. Uso aceptable</h2>
+    <p>El Cliente se compromete a:</p>
+    <ul>
+      <li>Utilizar el servicio únicamente para gestionar reservas de su propio negocio de restauración.</li>
+      <li>No realizar ingeniería inversa, scraping masivo ni intentos de acceso no autorizado.</li>
+      <li>No introducir datos falsos o spam en el sistema.</li>
+      <li>Cumplir con la normativa de protección de datos aplicable al tratar información de sus clientes.</li>
+    </ul>
+
+    <h2>6. Datos de los comensales</h2>
+    <p>
+      El Cliente actúa como <strong>responsable del tratamiento</strong> de los datos personales de sus comensales
+      (nombre, email, teléfono). La Empresa actúa como encargado del tratamiento según lo definido en el
+      <a href="/legal/privacidad">Acuerdo de Tratamiento de Datos</a> incluido en nuestra Política de Privacidad.
+    </p>
+    <p>El Cliente debe disponer de base legal adecuada para tratar dichos datos y facilitar a sus comensales la información exigida por el RGPD.</p>
+
+    <h2>7. Disponibilidad y SLA</h2>
+    <p>
+      La Empresa se compromete a prestar el servicio con una disponibilidad objetivo del <strong>99,5%</strong> mensual
+      (planes Basic y Pro). Los períodos de mantenimiento programado se comunicarán con al menos 24 horas de antelación.
+      El plan Trial no incluye garantía de disponibilidad.
+    </p>
+
+    <h2>8. Limitación de responsabilidad</h2>
+    <p>
+      La Empresa no será responsable de pérdidas de negocio, reservas perdidas u otros daños indirectos derivados
+      de interrupciones del servicio. La responsabilidad máxima total de la Empresa frente al Cliente estará
+      limitada a los importes abonados en los 3 meses anteriores al hecho causante.
+    </p>
+
+    <h2>9. Propiedad intelectual</h2>
+    <p>
+      Todos los derechos de propiedad intelectual sobre el software, diseño y contenidos de Tane Booking
+      pertenecen a la Empresa. El Cliente recibe una licencia de uso no exclusiva, intransferible y revocable
+      para usar el servicio según estos Términos.
+    </p>
+
+    <h2>10. Modificación de los Términos</h2>
+    <p>
+      La Empresa puede actualizar estos Términos notificando al Cliente con al menos <strong>15 días de antelación</strong>
+      por email. El uso continuado del servicio tras dicha fecha implica la aceptación de las modificaciones.
+    </p>
+
+    <h2>11. Rescisión</h2>
+    <p>
+      Cualquiera de las partes puede poner fin a la relación en cualquier momento. El Cliente puede cancelar desde
+      el panel. La Empresa puede suspender el acceso en caso de impago o incumplimiento grave de estos Términos,
+      previa notificación de 48 horas salvo en casos de urgencia.
+    </p>
+
+    <h2>12. Legislación aplicable y jurisdicción</h2>
+    <p>
+      Estos Términos se rigen por la legislación española. Para cualquier controversia, las partes se someten
+      a los Juzgados y Tribunales de Madrid, renunciando expresamente a cualquier otro fuero que pudiera corresponderles.
+    </p>
+
+    <div class="legal-contact">
+      <p>Para cualquier consulta sobre estos Términos, escríbenos a <a href="mailto:admin@tanesolutions.com">admin@tanesolutions.com</a>.</p>
+    </div>
+
+  </div>
+</div>
+
+</LayoutSaas>
+
+<style>
+.legal-wrap {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 4rem 1.5rem 6rem;
+}
+.legal-header {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.legal-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #aaa;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+.legal-header h1 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+.legal-updated {
+  font-size: 0.72rem;
+  color: #999;
+}
+
+.legal-body { line-height: 1.8; }
+.legal-body h2 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 2.5rem 0 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f5f5f5;
+}
+.legal-body h2:first-child { border-top: none; padding-top: 0; }
+.legal-body p {
+  font-size: 0.85rem;
+  color: #444;
+  margin-bottom: 0.75rem;
+}
+.legal-body ul {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.legal-body ul li {
+  font-size: 0.85rem;
+  color: #444;
+  margin-bottom: 0.4rem;
+}
+.legal-body a { color: #000; font-weight: 600; text-decoration: underline; }
+.legal-contact {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  background: #f9f9f9;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #555;
+}
+</style>

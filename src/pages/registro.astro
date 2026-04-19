@@ -1,0 +1,10 @@
+---
+import LayoutSaas from '../layouts/LayoutSaas.astro';
+import RegistroForm from '../components/RegistroForm.vue';
+---
+<LayoutSaas
+  title="Registro gratuito — Tane Booking"
+  description="Crea tu cuenta gratuita en Tane Booking. 14 días de prueba sin tarjeta de crédito. Sistema de reservas profesional para tu restaurante."
+>
+  <RegistroForm client:only="vue" />
+</LayoutSaas>

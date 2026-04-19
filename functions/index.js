@@ -735,3 +735,113 @@ exports.recordatoriosReservas = onSchedule(
     }
   }
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CALLABLE: setupNewRestaurant
+// Called by a freshly-registered admin user (already authenticated via Firebase
+// Auth). Creates the restaurant document and user profile in Firestore.
+// Idempotent: safe to call more than once (returns existing restaurant_id).
+// ─────────────────────────────────────────────────────────────────────────────
+exports.setupNewRestaurant = onCall(async (request) => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+  const uid   = request.auth.uid;
+  const email = request.auth.token.email || "";
+
+  // ── Idempotency: return existing setup if already done ────────────────────
+  const existingUser = await db.collection("users").doc(uid).get();
+  if (existingUser.exists && existingUser.data().restaurant_id) {
+    return { restaurant_id: existingUser.data().restaurant_id, existing: true };
+  }
+
+  const { nombre_restaurante, telefono } = request.data;
+  const nombre = (nombre_restaurante ?? "").trim();
+  if (!nombre) throw new HttpsError("invalid-argument", "El nombre del restaurante es obligatorio.");
+
+  // ── Generate URL-safe slug ────────────────────────────────────────────────
+  const slug = nombre
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .slice(0, 40)
+    .replace(/^-|-$/g, "")
+    + "-" + Date.now().toString(36);
+
+  // ── Trial: 14 days free ───────────────────────────────────────────────────
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
+  // ── Create restaurant document ────────────────────────────────────────────
+  await db.collection("restaurants").doc(slug).set({
+    nombre,
+    telefono:          (telefono ?? "").trim(),
+    email,
+    plan:              "trial",
+    activo:            true,
+    modo_confirmacion: "manual",
+    trial_ends_at:     trialEndsAt,
+    creado_en:         new Date(),
+    horarios: {
+      comida:   { inicio: "13:00", fin: "16:30" },
+      cena:     { inicio: "20:00", fin: "23:30" },
+      intervalo: 30,
+    },
+  });
+
+  // ── Create user profile ───────────────────────────────────────────────────
+  await db.collection("users").doc(uid).set({
+    email,
+    role:            "admin",
+    restaurant_id:   slug,
+    onboarding_done: false,
+    creado_en:       new Date(),
+  });
+
+  // ── Welcome email ─────────────────────────────────────────────────────────
+  try {
+    await resend.emails.send({
+      from:    FROM_EMAIL,
+      to:      [email],
+      subject: `Bienvenido a Tane Booking — tu cuenta está lista`,
+      html:    templates.bienvenidaRegistro(email, nombre, APP_URL + "/admin/dashboard"),
+    });
+  } catch (e) {
+    console.error("[setupNewRestaurant] welcome email:", e.message);
+  }
+
+  console.log(`[setupNewRestaurant] restaurant ${slug} created for ${email}`);
+  return { restaurant_id: slug, existing: false };
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CALLABLE: createBillingPortalSession
+// Admin users can manage their subscription via the Stripe Customer Portal
+// without contacting support. Superadmin can pass any restaurant_id.
+// ─────────────────────────────────────────────────────────────────────────────
+exports.createBillingPortalSession = onCall(async (request) => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+  if (!stripe) throw new HttpsError("failed-precondition", "Stripe no está configurado.");
+
+  const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+  const caller     = callerSnap.exists ? callerSnap.data() : null;
+  if (!caller || !["admin", "superadmin"].includes(caller.role))
+    throw new HttpsError("permission-denied", "No tienes permisos para gestionar el plan.");
+
+  const restaurantId = caller.role === "superadmin"
+    ? (request.data.restaurant_id || caller.restaurant_id)
+    : caller.restaurant_id;
+
+  const restaurante = await getRestauranteData(restaurantId);
+  if (!restaurante.stripe_customer_id)
+    throw new HttpsError("failed-precondition", "No hay suscripción activa. Actualiza tu plan primero.");
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer:   restaurante.stripe_customer_id,
+    return_url: `${APP_URL}/admin/dashboard`,
+  });
+
+  console.log(`[billingPortal] session for ${restaurantId}`);
+  return { url: session.url };
+});
