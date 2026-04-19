@@ -41,17 +41,22 @@
         {{ errorMsg }}
       </div>
 
+      <!-- Duplicate reservation warning -->
+      <div v-if="duplicateWarning" class="form-warn-banner" role="alert">
+        ⚠️ {{ duplicateWarning }}
+      </div>
+
       <!-- ── STEP 1: Personal data ── -->
       <fieldset class="form-section">
         <div class="form-grid form-grid--2">
           <div class="field-group">
-            <label class="field-label" for="nombre">Nombre completo</label>
+            <label class="field-label" for="nombre">Nombre completo <span class="field-required">*</span></label>
             <input id="nombre" v-model="form.nombre_cliente" type="text" required
               class="field-input" placeholder="Tu nombre completo"
               autocomplete="name">
           </div>
           <div class="field-group">
-            <label class="field-label" for="email">Correo electrónico</label>
+            <label class="field-label" for="email">Correo electrónico <span class="field-required">*</span></label>
             <input id="email" v-model="form.email" type="email" required
               class="field-input" placeholder="email@ejemplo.com"
               autocomplete="email">
@@ -64,16 +69,18 @@
         <div class="form-grid form-grid--3">
 
           <div class="field-group">
-            <label class="field-label" for="telefono">Teléfono</label>
+            <label class="field-label" for="telefono">Teléfono <span class="field-required">*</span></label>
             <input id="telefono" v-model="form.telefono" type="tel" required
               class="field-input" placeholder="+34 600 000 000"
               autocomplete="tel">
           </div>
 
           <div class="field-group">
-            <label class="field-label" for="fecha">Fecha</label>
+            <label class="field-label" for="fecha">Fecha <span class="field-required">*</span></label>
             <input id="fecha" v-model="form.fecha" type="date" required
-              :min="minDate" class="field-input">
+              :min="minDate" class="field-input"
+              :class="fechaError ? 'field-input--error' : ''">
+            <p v-if="fechaError" class="field-error">{{ fechaError }}</p>
           </div>
 
           <!-- Pax stepper -->
@@ -184,12 +191,15 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { collection, addDoc, getDocs, getDoc, doc, query, where, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase.ts';
+import { collection, getDocs, getDoc, doc, query, where } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, fns } from '../lib/firebase.ts';
 import {
-  getTurnTime, BUFFER_MIN, timeToMinutes,
-  findBestTable, countAvailableTables,
+  BUFFER_MIN, timeToMinutes,
+  countAvailableTables,
 } from '../lib/reservationUtils.ts';
+
+const createReservaFn = httpsCallable(fns, 'createReserva');
 
 const props = defineProps({
   restaurantId: { type: String, default: 'the-editorial' }
@@ -260,11 +270,13 @@ onMounted(async () => {
 });
 
 // ─── State ───────────────────────────────────────────
-const submitting    = ref(false);
-const bookingResult = ref(null); // { confirmed, mesa, hora, pax } | { confirmed: false }
-const errorMsg      = ref('');
-const successRef    = ref(null);
-const showHoraError = ref(false);
+const submitting       = ref(false);
+const bookingResult    = ref(null); // { confirmed, mesa, hora, pax } | { confirmed: false }
+const errorMsg         = ref('');
+const successRef       = ref(null);
+const showHoraError    = ref(false);
+const duplicateWarning = ref(''); // non-empty = user already has a booking that day
+const fechaError       = ref(''); // non-empty = selected date is in the past
 
 const mesas          = ref([]);
 const occupancyToday = ref([]);
@@ -322,9 +334,16 @@ const computedSlots = computed(() => {
   }
 
   const now          = new Date();
+  const todayStart   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const selectedDate = new Date(form.value.fecha + 'T00:00:00');
+  const isPastDate   = selectedDate < todayStart;
   const isToday      = selectedDate.toDateString() === now.toDateString();
   const pax          = form.value.comensales;
+
+  // Block everything for past dates — no reservation allowed
+  if (isPastDate) {
+    return horas.map(hora => ({ hora, available: false, remaining: 0 }));
+  }
 
   // No mesas configured → accept bookings as pendiente, show all available
   if (mesas.value.length === 0) {
@@ -392,18 +411,103 @@ const loadRoomData = async () => {
   }
 };
 
+// ─── Duplicate reservation check ──────────────────────
+/**
+ * Queries Firestore for existing active reservations for the same email + date.
+ * Uses two equality filters (no composite index needed for equality-only queries).
+ * Filters out 'cancelada' and 'no-show' client-side.
+ */
+let checkTimeout = null;
+const checkDuplicateReserva = async () => {
+  const email = (form.value.email ?? '').trim();
+  const fecha  = form.value.fecha;
+  // Need both email (valid-ish) and date to run the check
+  if (!email || !fecha || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    duplicateWarning.value = '';
+    return;
+  }
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'reservas'),
+      where('restaurant_id', '==', resolvedId.value),
+      where('email', '==', email),
+    ));
+    const targetDate = new Date(fecha + 'T00:00:00').toDateString();
+    const existing = snap.docs.find(d => {
+      const r = d.data();
+      if (['cancelada', 'no-show'].includes(r.estado)) return false;
+      const reservaDate = r.fecha?.toDate?.() ?? new Date(r.fecha);
+      return reservaDate.toDateString() === targetDate;
+    });
+    duplicateWarning.value = existing
+      ? `Ya tienes una reserva para el ${fecha} con este email. Si necesitas hacer cambios, contacta con nosotros directamente.`
+      : '';
+  } catch (err) {
+    // Non-critical: don't block the user if the check fails
+    console.warn('[BookingForm] checkDuplicate error:', err);
+    duplicateWarning.value = '';
+  }
+};
+
 // ─── Watchers ─────────────────────────────────────────
-watch(() => form.value.fecha, () => { form.value.hora = ''; loadRoomData(); });
+watch(() => form.value.email, () => {
+  duplicateWarning.value = '';
+  clearTimeout(checkTimeout);
+  checkTimeout = setTimeout(checkDuplicateReserva, 600); // debounce 600 ms
+});
+watch(() => form.value.fecha, () => {
+  form.value.hora = '';
+  // Validate that the date is not in the past
+  if (form.value.fecha) {
+    const todayStart   = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(form.value.fecha + 'T00:00:00');
+    fechaError.value   = selectedDate < todayStart
+      ? 'No puedes reservar en una fecha pasada.'
+      : '';
+  } else {
+    fechaError.value = '';
+  }
+  loadRoomData();
+  // Re-run duplicate check whenever date changes (email may already be filled)
+  clearTimeout(checkTimeout);
+  checkTimeout = setTimeout(checkDuplicateReserva, 300);
+});
 watch(() => form.value.comensales, () => { form.value.hora = ''; });
 watch(bookingResult, async (val) => {
   if (val) { await nextTick(); successRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 });
 
-// ─── Submit — auto-assign table ───────────────────────
+// ─── Submit — via Cloud Function (server-side validation + assignment) ────────
 const submitBooking = async () => {
+  errorMsg.value = '';
+
+  // ── Client guards (UX — server re-validates everything) ───────────────────
+  const nombre   = (form.value.nombre_cliente ?? '').trim();
+  const email    = (form.value.email          ?? '').trim();
+  const telefono = (form.value.telefono       ?? '').trim();
+  if (!nombre || !email || !telefono) {
+    const missing = [
+      !nombre   && 'nombre completo',
+      !email    && 'correo electrónico',
+      !telefono && 'teléfono',
+    ].filter(Boolean).join(', ');
+    errorMsg.value = `Por favor, completa los campos obligatorios: ${missing}.`;
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errorMsg.value = 'El correo electrónico no es válido.';
+    return;
+  }
+  if (fechaError.value) { errorMsg.value = fechaError.value; return; }
   if (!form.value.hora) {
     showHoraError.value = true;
     errorMsg.value = 'Por favor, selecciona una hora para tu reserva.';
+    return;
+  }
+  const selectedDateTime = new Date(`${form.value.fecha}T${form.value.hora}:00`);
+  if (selectedDateTime <= new Date()) {
+    errorMsg.value = 'La fecha y hora seleccionadas ya han pasado. Por favor, elige otra.';
     return;
   }
 
@@ -412,38 +516,25 @@ const submitBooking = async () => {
   errorMsg.value      = '';
 
   try {
-    const pax      = Number(form.value.comensales);
-    const duracion = getTurnTime(pax);
-    const dateObj  = new Date(`${form.value.fecha}T${form.value.hora}:00`);
-
-    // ── Best-fit table assignment ──────────────────────
-    // Find the smallest available table for this slot
-    const autoMode  = modoConfirmacion.value === 'auto';
-    const bestTable = autoMode ? findBestTable(mesas.value, pax, form.value.hora, occupancyToday.value) : null;
-
-    await addDoc(collection(db, 'reservas'), {
+    // ── Call server — all real validation + table assignment happens here ────
+    const result = await createReservaFn({
       restaurant_id:     resolvedId.value,
-      nombre_cliente:    form.value.nombre_cliente,
-      email:             form.value.email,
-      telefono:          form.value.telefono,
-      fecha:             dateObj,
+      nombre_cliente:    nombre,
+      email,
+      telefono,
+      fecha:             form.value.fecha,
       hora:              form.value.hora,
-      comensales:        pax,
+      comensales:        Number(form.value.comensales),
       comentarios:       form.value.comentarios || '',
       marketing_consent: Boolean(form.value.marketing_consent),
-      // Auto-confirm only when mode is 'auto' and a table is available
-      estado:            bestTable ? 'confirmada' : 'pendiente',
-      mesa_id:           bestTable?.id ?? null,
-      duracion_min:      duracion,
-      creado_en:         serverTimestamp(),
-      notas:             '',
     });
 
-    bookingResult.value = bestTable
-      ? { confirmed: true,  mesa: bestTable.nombre, hora: form.value.hora, pax }
+    const { confirmed, mesa, hora, pax } = result.data;
+    bookingResult.value = confirmed
+      ? { confirmed: true, mesa, hora, pax }
       : { confirmed: false };
 
-    // Reset
+    // Reset form
     form.value = {
       nombre_cliente: '', email: '', telefono: '',
       fecha: '', hora: '', comensales: 2,
@@ -451,9 +542,22 @@ const submitBooking = async () => {
     };
     mesas.value          = [];
     occupancyToday.value = [];
+    duplicateWarning.value = '';
   } catch (err) {
     console.error('[BookingForm] submit error:', err);
-    errorMsg.value = 'No se pudo procesar la reserva. Inténtalo de nuevo o llámanos.';
+    // Parse Firebase HttpsError codes for user-friendly messages
+    const code = (err.code ?? '').replace('functions/', '');
+    if (code === 'resource-exhausted') {
+      errorMsg.value = 'Demasiadas solicitudes. Por favor, espera unos minutos e inténtalo de nuevo.';
+    } else if (code === 'already-exists') {
+      errorMsg.value = 'Ya existe una reserva para este día con ese email. Si necesitas modificarla, contáctanos directamente.';
+    } else if (code === 'failed-precondition') {
+      errorMsg.value = err.message || 'No se puede procesar la reserva en este momento.';
+    } else if (code === 'not-found') {
+      errorMsg.value = 'No se encontró el restaurante. Comprueba el enlace de reserva.';
+    } else {
+      errorMsg.value = err.message || 'No se pudo procesar la reserva. Inténtalo de nuevo o llámanos.';
+    }
   } finally {
     submitting.value = false;
   }
@@ -549,6 +653,8 @@ const submitBooking = async () => {
 .field-textarea { min-height: 80px; resize: vertical; border-bottom: 2px solid #000; padding-top: 0.875rem; }
 .field-hint { font-size: 0.65rem; color: #aaa; margin: 0; }
 .field-error { font-size: 0.7rem; color: #d90429; margin-top: 0.5rem; font-weight: 600; }
+.field-required { color: #d90429; font-weight: 900; margin-left: 1px; }
+.field-input--error { border-bottom-color: #d90429 !important; }
 
 /* ── Pax stepper ──────────────────────────────────── */
 .pax-stepper {
@@ -681,6 +787,14 @@ const submitBooking = async () => {
   padding: 1rem 1.25rem;
   font-size: 0.8rem; font-weight: 600;
   margin-bottom: 2rem; border-radius: 4px;
+}
+.form-warn-banner {
+  background: #fffbeb; color: #92400e;
+  border: 1.5px solid #fcd34d;
+  padding: 1rem 1.25rem;
+  font-size: 0.8rem; font-weight: 600;
+  margin-bottom: 2rem; border-radius: 4px;
+  line-height: 1.5;
 }
 
 /* ── Success screen ───────────────────────────────── */

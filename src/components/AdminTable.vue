@@ -178,6 +178,9 @@
       <section v-if="currentView === 'reservas' && currentRestaurantId" class="view-section">
 
         <!-- KPI strip -->
+        <div class="kpi-date-row">
+          <span class="kpi-date-chip">{{ kpis.fechaLabel }}</span>
+        </div>
         <div class="kpi-strip">
           <div class="kpi-card">
             <p class="kpi-num">{{ kpis.total }}</p>
@@ -235,7 +238,7 @@
 
         <!-- Bookings list -->
         <div v-else class="bookings-list">
-          <article v-for="res in filteredBookings" :key="res.id"
+          <article v-for="res in paginatedBookings" :key="res.id"
             :class="['booking-row', `booking-row--${res.estado}`]">
 
             <!-- Colored status bar -->
@@ -309,9 +312,26 @@
                   ↩ RESTAURAR
                 </button>
               </template>
+
+              <!-- Delete — admin & superadmin only -->
+              <button v-if="!isStaff" @click="deleteReserva(res)" class="act-btn act-btn--delete" title="Eliminar reserva permanentemente">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+                ELIMINAR
+              </button>
             </div>
 
           </article>
+          <!-- Load more -->
+          <div v-if="hasMoreBookings" class="load-more-wrap">
+            <button @click="bookingsPage++" class="load-more-btn">
+              Ver más reservas ({{ filteredBookings.length - paginatedBookings.length }} restantes)
+            </button>
+          </div>
+          <p v-else-if="filteredBookings.length > PAGE_SIZE" class="load-more-end">
+            Mostrando todas las reservas ({{ filteredBookings.length }})
+          </p>
         </div>
       </section>
 
@@ -558,6 +578,17 @@
                       <span class="toggle-text">{{ profileForm.activo ? 'Activo' : 'Inactivo' }}</span>
                     </label>
                   </div>
+                </div>
+                <!-- Pausar emails: disponible para admin y superadmin -->
+                <div class="field">
+                  <label>Notificaciones por Email</label>
+                  <label class="toggle-label">
+                    <input type="checkbox" v-model="profileForm.pausa_emails" class="toggle-input">
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-text">
+                      {{ profileForm.pausa_emails ? 'Pausados (no se enviarán correos)' : 'Activos (envío normal)' }}
+                    </span>
+                  </label>
                 </div>
                 <div class="field">
                   <label>Confirmación de reservas</label>
@@ -1057,6 +1088,10 @@ const filterDate    = ref('');   // empty = todas las fechas
 const filterStatus  = ref('todas');
 const searchQuery   = ref('');
 const customerSearch = ref('');
+
+// ─── Pagination ───────────────────────────────────────
+const PAGE_SIZE    = 50;
+const bookingsPage = ref(1);
 const today         = new Date().toISOString().split('T')[0];
 const setToday      = () => { filterDate.value = filterDate.value === today ? '' : today; };
 
@@ -1129,18 +1164,30 @@ const filteredBookings = computed(() => {
   return list.sort((a, b) => (a.hora ?? '').localeCompare(b.hora ?? ''));
 });
 
+// Paginated slice shown in the list (reset page on filter change)
+const paginatedBookings = computed(() =>
+  filteredBookings.value.slice(0, bookingsPage.value * PAGE_SIZE)
+);
+const hasMoreBookings = computed(() =>
+  filteredBookings.value.length > bookingsPage.value * PAGE_SIZE
+);
+
 const kpis = computed(() => {
-  // KPIs always reference the selected date, independent of other filters
+  // KPIs always reference a specific date: the selected filter date, or today by default
+  const today      = new Date().toISOString().split('T')[0];
+  const targetDate = filterDate.value || today;
+  const esHoy      = targetDate === today;
+
   const day = reservas.value.filter(r => {
-    if (!filterDate.value) return true;
     const d = r.fecha?.toDate ? r.fecha.toDate() : new Date(r.fecha);
-    return d.toISOString().split('T')[0] === filterDate.value;
+    return d.toISOString().split('T')[0] === targetDate;
   });
   return {
     total:       day.length,
     pendientes:  day.filter(r => r.estado === 'pendiente').length,
     confirmadas: day.filter(r => r.estado === 'confirmada').length,
     pax:         day.reduce((sum, r) => sum + (Number(r.comensales) || 0), 0),
+    fechaLabel:  esHoy ? 'HOY' : new Date(targetDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }),
   };
 });
 
@@ -1206,7 +1253,7 @@ const estadoLabel = (estado) => ({
 const formatDate = (fecha) => {
   if (!fecha) return '—';
   const d = fecha?.toDate ? fecha.toDate() : new Date(fecha);
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', weekday: 'short' });
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'short' });
 };
 
 const getMesaNombre = (mesaId) =>
@@ -1288,6 +1335,11 @@ const syncRestaurants = () => {
     })
   );
 };
+
+// Reset pagination when any filter changes
+watch([filterDate, filterStatus, searchQuery, currentRestaurantId], () => {
+  bookingsPage.value = 1;
+});
 
 // ─── Auth lifecycle ───────────────────────────────────
 onMounted(() => {
@@ -1387,7 +1439,27 @@ const sendForgotPassword = async () => {
 
 // ─── Reservation actions ──────────────────────────────
 const changeStatus = async (id, newStatus) => {
-  await updateDoc(doc(db, 'reservas', id), { estado: newStatus });
+  await updateDoc(doc(db, 'reservas', id), {
+    estado:     newStatus,
+    updated_by: user.value?.uid ?? null,   // audit trail
+    updated_en: new Date(),
+  });
+};
+
+const deleteReserva = async (res) => {
+  const fechaStr = formatDate(res.fecha);
+  const msg = `¿Eliminar la reserva de ${res.nombre_cliente} (${fechaStr} · ${res.hora}h)?\n\nEsta acción no se puede deshacer.`;
+  if (!confirm(msg)) return;
+  // Optimistic removal from local list
+  const idx = reservas.value.findIndex(r => r.id === res.id);
+  if (idx !== -1) reservas.value.splice(idx, 1);
+  try {
+    await deleteDoc(doc(db, 'reservas', res.id));
+  } catch (e) {
+    console.error('[deleteReserva]', e.code, e.message);
+    // Revert on failure — onSnapshot will restore the correct state
+    alert(`No se pudo eliminar la reserva: ${e.message}`);
+  }
 };
 
 /**
@@ -1416,7 +1488,11 @@ const approveBooking = async (res) => {
     else delete update.mesa_id;
   }
 
-  await updateDoc(doc(db, 'reservas', res.id), update);
+  await updateDoc(doc(db, 'reservas', res.id), {
+    ...update,
+    updated_by: user.value?.uid ?? null,
+    updated_en: new Date(),
+  });
 };
 
 const saveNota = async (id) => {
@@ -1552,6 +1628,7 @@ const openProfile = async (restaurant) => {
     plan:               restaurant.plan              || 'basic',
     activo:             restaurant.activo            !== false,
     modo_confirmacion:  restaurant.modo_confirmacion || 'auto',
+    pausa_emails:       restaurant.pausa_emails      === true,
     horarios: {
       comida:    { inicio: h.comida?.inicio ?? '13:00', fin: h.comida?.fin ?? '17:00' },
       cena:      { inicio: h.cena?.inicio   ?? '20:00', fin: h.cena?.fin   ?? '00:00' },
@@ -1625,6 +1702,7 @@ const saveProfile = async () => {
       email:             profileForm.value.email     || '',
       web:               profileForm.value.web       || '',
       modo_confirmacion: profileForm.value.modo_confirmacion || 'auto',
+      pausa_emails:      profileForm.value.pausa_emails      === true,
       horarios:          profileForm.value.horarios          ?? DEFAULT_HORARIOS,
     };
     // Plan y estado activo: solo superadmin puede modificarlos
@@ -2005,6 +2083,16 @@ const requestOwnPasswordReset = async () => {
 .view-actions { display: flex; gap: 0.75rem; align-items: center; }
 
 /* ── KPI Strip ───────────────────────────────────── */
+.kpi-date-row {
+  display: flex; align-items: center;
+  margin-bottom: 0.5rem;
+}
+.kpi-date-chip {
+  font-size: 0.6rem; font-weight: 800;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  background: #000; color: #fff;
+  padding: 0.25em 0.75em; border-radius: 100px;
+}
 .kpi-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2177,6 +2265,31 @@ const requestOwnPasswordReset = async () => {
 .act-btn--noshow   { background: #f1f5f9; color: #475569; }
 .act-btn--restore  { background: #f0f0f0; color: #333; }
 .act-btn--sm       { font-size: 0.6rem; }
+.act-btn--delete {
+  background: transparent;
+  color: #dc2626;
+  border: 1.5px solid #fca5a5;
+  display: flex; align-items: center; gap: 0.3rem;
+  margin-top: 0.25rem;
+}
+.act-btn--delete:hover { background: #fee2e2; border-color: #dc2626; }
+
+/* ── Pagination ──────────────────────────────────── */
+.load-more-wrap {
+  padding: 1.25rem 0 0.5rem;
+  display: flex; justify-content: center;
+}
+.load-more-btn {
+  background: #f4f4f4; border: 1.5px solid #e0e0e0; color: #333;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+  padding: 0.75rem 2rem; border-radius: 4px; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.load-more-btn:hover { background: #e8e8e8; border-color: #bbb; }
+.load-more-end {
+  text-align: center; font-size: 0.65rem; color: #aaa;
+  padding: 1rem 0 0.5rem;
+}
 
 /* ── CRM Table ───────────────────────────────────── */
 .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #eee; }

@@ -72,7 +72,17 @@ service cloud.firestore {
       allow update: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
     }
     
-    // Colección de logs o auditoría si fuera necesario
+    // Audit log de cambios en reservas (escrito solo por Cloud Functions vía admin SDK)
+    match /reservation_logs/{logId} {
+      allow read: if isRestaurantMember(resource.data.restaurant_id) || isSuperAdmin();
+      allow write: if false; // Solo Cloud Functions (admin SDK bypassa reglas)
+    }
+
+    // Rate limiting (escrito solo por Cloud Functions vía admin SDK)
+    match /rate_limits/{docId} {
+      allow read, write: if false;
+    }
+
     match /system_logs/{logId} {
       allow read, write: if isSuperAdmin();
     }

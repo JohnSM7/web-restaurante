@@ -1,12 +1,14 @@
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError, onRequest }        = require("firebase-functions/v2/https");
+const { onSchedule }       = require("firebase-functions/v2/scheduler");
 const { initializeApp }    = require("firebase-admin/app");
 const { getFirestore }     = require("firebase-admin/firestore");
 const { getAuth }          = require("firebase-admin/auth");
 const { Resend }           = require("resend");
 const Stripe               = require("stripe");
 const templates            = require("./templates");
-const { PLANS, isOverLimit, isNearLimit } = require("./plans");
+const { PLANS, isOverLimit, isNearLimit }    = require("./plans");
+const { getTurnTime, findBestTable }         = require("./reservationUtils");
 
 initializeApp();
 const db     = getFirestore();
@@ -17,6 +19,13 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_your_test_key");
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" })
   : null;
+
+if (stripe && !process.env.STRIPE_WEBHOOK_SECRET) {
+  console.warn("[STARTUP] ⚠️  STRIPE_WEBHOOK_SECRET no configurado — los webhooks de Stripe fallarán.");
+}
+if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_your_test_key") {
+  console.warn("[STARTUP] ⚠️  RESEND_API_KEY no configurado — los emails no se enviarán.");
+}
 
 const APP_URL     = "https://tane-restaurante-app.web.app";
 const FROM_EMAIL  = "Tane Booking <reservas@tanesolutions.com>";
@@ -47,6 +56,34 @@ async function getRestauranteData(restaurantId) {
   }
 }
 
+/**
+ * Rate limiter using Firestore sliding-window counter.
+ * key        — unique identifier (e.g. "booking_{email}_{restaurantId}")
+ * maxPerWindow — max allowed within the window
+ * windowMs   — window duration in ms (default 1 hour)
+ * Returns true if the request should be blocked.
+ */
+async function checkRateLimit(key, maxPerWindow = 5, windowMs = 3_600_000) {
+  const safeKey = key.replace(/[^a-zA-Z0-9_@.-]/g, "_").slice(0, 200);
+  const ref     = db.collection("rate_limits").doc(safeKey);
+  const now     = Date.now();
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? snap.data() : null;
+    const winStart = data?.window_start?.toMillis?.() ?? data?.window_start ?? 0;
+
+    if (!data || now - winStart > windowMs) {
+      // New window: start fresh
+      tx.set(ref, { count: 1, window_start: new Date(now) });
+      return false;
+    }
+    if (data.count >= maxPerWindow) return true; // Blocked
+    tx.update(ref, { count: data.count + 1 });
+    return false;
+  });
+}
+
 /** Count reservations this calendar month for a restaurant */
 async function countReservasMes(restaurantId) {
   const now   = new Date();
@@ -63,6 +100,7 @@ async function countReservasMes(restaurantId) {
 
 /** Send alert email to superadmin */
 async function sendLimitAlert(restaurante, tipo) {
+  // Global pause or per-client pause does not affect superadmin limit alerts
   const plan      = restaurante.plan || "trial";
   const planData  = PLANS[plan] || PLANS.trial;
   const limite    = planData.reservas_mes;
@@ -115,7 +153,7 @@ exports.onReservaCreate = onDocumentCreated("reservas/{reservaId}", async (event
 
   // ── Email de solicitud recibida si la reserva está pendiente (modo manual) ──
   // En modo manual el estado inicial es "pendiente": enviamos acuse de recibo.
-  if (data.estado === "pendiente" && data.email && planData.emails) {
+  if (data.estado === "pendiente" && data.email && planData.emails && !restaurante.pausa_emails) {
     const { nombre_cliente, email, fecha, hora } = data;
     const pax     = data.pax || data.personas || 1;
     const dateStr = (fecha.toDate ? fecha.toDate() : new Date(fecha))
@@ -135,7 +173,7 @@ exports.onReservaCreate = onDocumentCreated("reservas/{reservaId}", async (event
 
   // ── Email de confirmación si la reserva nació ya como "confirmada" ─────────
   // (modo automático: onReservaUpdate no se dispara en creaciones)
-  if (data.estado === "confirmada" && data.email && planData.emails) {
+  if (data.estado === "confirmada" && data.email && planData.emails && !restaurante.pausa_emails) {
     const { nombre_cliente, email, fecha, hora } = data;
     const dateStr = (fecha.toDate ? fecha.toDate() : new Date(fecha))
       .toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
@@ -160,6 +198,22 @@ exports.onReservaCreate = onDocumentCreated("reservas/{reservaId}", async (event
 exports.onReservaUpdate = onDocumentUpdated("reservas/{reservaId}", async (event) => {
   const dataBefore = event.data.before.data();
   const dataAfter  = event.data.after.data();
+
+  // ── Audit log: always record state changes ─────────────────────────────────
+  if (dataBefore.estado !== dataAfter.estado) {
+    db.collection("reservation_logs").add({
+      reserva_id:    event.params.reservaId,
+      restaurant_id: dataAfter.restaurant_id,
+      cliente:       dataAfter.nombre_cliente,
+      email:         dataAfter.email,
+      campo:         "estado",
+      valor_antes:   dataBefore.estado,
+      valor_despues: dataAfter.estado,
+      modificado_por: dataAfter.updated_by || null, // set by admin UI
+      modificado_en: new Date(),
+    }).catch(err => console.error("[audit]", err.message));
+  }
+
   if (dataBefore.estado === dataAfter.estado) return;
 
   const { nombre_cliente, email, fecha, hora, restaurant_id } = dataAfter;
@@ -167,8 +221,8 @@ exports.onReservaUpdate = onDocumentUpdated("reservas/{reservaId}", async (event
   const plan        = restaurante.plan || "trial";
   const planData    = PLANS[plan] || PLANS.trial;
 
-  // Only send emails if the plan allows it
-  if (!planData.emails) return;
+  // Only send emails if the plan allows it and they are not manually paused
+  if (!planData.emails || restaurante.pausa_emails) return;
 
   if (!restaurante.nombre) {
     console.warn(`[email] restaurante.nombre vacío para restaurant_id=${restaurant_id} — revisar /restaurants/${restaurant_id} en Firestore`);
@@ -257,13 +311,17 @@ exports.createStaffUser = onCall(async (request) => {
     const setPwdLink  = await auth.generatePasswordResetLink(email, {
       url: `${APP_URL}/admin/dashboard`,
     });
-    await resend.emails.send({
-      from:    FROM_EMAIL,
-      to:      [email],
-      subject: `Acceso a ${restaurante.nombre || "el panel de gestión"} — Tane Booking`,
-      html:    templates.activacionCuenta(email, setPwdLink, APP_URL + "/admin/dashboard", restaurante, role),
-    });
-    console.log(`[createStaffUser] activation email → ${email} (isNewUser=${isNewUser})`);
+    if (!restaurante.pausa_emails) {
+      await resend.emails.send({
+        from:    FROM_EMAIL,
+        to:      [email],
+        subject: `Acceso a ${restaurante.nombre || "el panel de gestión"} — Tane Booking`,
+        html:    templates.activacionCuenta(email, setPwdLink, APP_URL + "/admin/dashboard", restaurante, role),
+      });
+      console.log(`[createStaffUser] activation email → ${email} (isNewUser=${isNewUser})`);
+    } else {
+      console.log(`[createStaffUser] email skipped (paused) → ${email}`);
+    }
   } catch (e) {
     console.error("[createStaffUser] email failed:", e);
   }
@@ -352,15 +410,18 @@ exports.resetStaffPassword = onCall(async (request) => {
   // Obtener datos del restaurante para el branding del email
   const restaurante = await getRestauranteData(target.restaurant_id);
 
-  // Enviar email vía Resend
-  await resend.emails.send({
-    from:    FROM_EMAIL,
-    to:      [email],
-    subject: `Restablece tu contraseña — ${restaurante.nombre || "Tane Booking"}`,
-    html:    templates.restablecimientoContrasena(email, resetLink, restaurante),
-  });
-
-  console.log(`[resetStaffPassword] reset email → ${email}`);
+  // Enviar email vía Resend (si no está pausado)
+  if (!restaurante.pausa_emails) {
+    await resend.emails.send({
+      from:    FROM_EMAIL,
+      to:      [email],
+      subject: `Restablece tu contraseña — ${restaurante.nombre || "Tane Booking"}`,
+      html:    templates.restablecimientoContrasena(email, resetLink, restaurante),
+    });
+    console.log(`[resetStaffPassword] reset email → ${email}`);
+  } else {
+    console.log(`[resetStaffPassword] email skipped (paused) → ${email}`);
+  }
   return { success: true, email };
 });
 
@@ -516,3 +577,161 @@ exports.getPlanUsage = onCall(async (request) => {
     stripe_subscription_id:  restaurante.stripe_subscription_id  || null,
   };
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CALLABLE: createReserva
+// Secure, server-side booking creation with:
+//   - Input validation
+//   - Rate limiting (5 attempts/hour per email+restaurant)
+//   - Duplicate check (same email + date)
+//   - Server-side table assignment (mirrors frontend algorithm)
+// Replaces direct client-side addDoc for security and reliability.
+// ─────────────────────────────────────────────────────────────────────────────
+exports.createReserva = onCall(async (request) => {
+  const {
+    restaurant_id, nombre_cliente, email, telefono,
+    fecha, hora, comensales, comentarios, marketing_consent,
+  } = request.data;
+
+  // ── 1. Input validation ────────────────────────────────────────────────────
+  if (!restaurant_id) throw new HttpsError("invalid-argument", "Falta restaurant_id.");
+  const nombreTrim   = (nombre_cliente ?? "").trim();
+  const emailTrim    = (email          ?? "").trim().toLowerCase();
+  const telefonoTrim = (telefono       ?? "").trim();
+
+  if (!nombreTrim)   throw new HttpsError("invalid-argument", "El nombre es obligatorio.");
+  if (!emailTrim || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim))
+    throw new HttpsError("invalid-argument", "El email no es válido.");
+  if (!telefonoTrim) throw new HttpsError("invalid-argument", "El teléfono es obligatorio.");
+  if (!fecha || !hora)
+    throw new HttpsError("invalid-argument", "Fecha y hora son obligatorias.");
+
+  // ── 2. Past date/time check ───────────────────────────────────────────────
+  const selectedDateTime = new Date(`${fecha}T${hora}:00`);
+  if (isNaN(selectedDateTime.getTime()) || selectedDateTime <= new Date())
+    throw new HttpsError("failed-precondition", "La fecha y hora seleccionadas ya han pasado.");
+
+  // ── 3. Rate limit: max 5 booking attempts/hour per email+restaurant ────────
+  const rateLimitKey = `booking_${emailTrim}_${restaurant_id}`;
+  const isLimited    = await checkRateLimit(rateLimitKey, 5, 3_600_000);
+  if (isLimited)
+    throw new HttpsError("resource-exhausted", "Demasiadas solicitudes. Inténtalo en unos minutos.");
+
+  // ── 4. Restaurant validation ──────────────────────────────────────────────
+  const restaurante = await getRestauranteData(restaurant_id);
+  if (!restaurante.id) throw new HttpsError("not-found", "Restaurante no encontrado.");
+
+  const plan     = restaurante.plan || "trial";
+  const planData = PLANS[plan] || PLANS.trial;
+
+  // ── 5. Duplicate check (same email + date, non-cancelled) ─────────────────
+  const dupSnap = await db.collection("reservas")
+    .where("email", "==", emailTrim)
+    .get();
+  const hasDuplicate = dupSnap.docs.some(d => {
+    const r = d.data();
+    if (!r.restaurant_id || r.restaurant_id !== restaurant_id) return false;
+    if (["cancelada", "no-show"].includes(r.estado)) return false;
+    const reservaDate = r.fecha?.toDate ? r.fecha.toDate() : new Date(r.fecha);
+    return reservaDate.toDateString() === selectedDateTime.toDateString();
+  });
+  if (hasDuplicate)
+    throw new HttpsError("already-exists", "Ya existe una reserva para este día con ese email.");
+
+  // ── 6. Table assignment ───────────────────────────────────────────────────
+  const pax      = Math.max(1, Math.min(Number(comensales) || 1, 100));
+  const duracion = getTurnTime(pax);
+
+  const fechaStart = new Date(`${fecha}T00:00:00`);
+  const fechaEnd   = new Date(`${fecha}T23:59:59`);
+
+  const [mesasSnap, resSnap] = await Promise.all([
+    db.collection("mesas").where("restaurant_id", "==", restaurant_id).get(),
+    db.collection("reservas")
+      .where("restaurant_id", "==", restaurant_id)
+      .where("fecha", ">=", fechaStart)
+      .where("fecha", "<=", fechaEnd)
+      .get(),
+  ]);
+
+  const mesas         = mesasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const reservasDelDia = resSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const modoAuto  = (restaurante.modo_confirmacion ?? "auto") === "auto";
+  const bestTable = modoAuto ? findBestTable(mesas, pax, hora, reservasDelDia) : null;
+
+  // ── 7. Create reservation ─────────────────────────────────────────────────
+  const reservaData = {
+    restaurant_id,
+    nombre_cliente:    nombreTrim,
+    email:             emailTrim,
+    telefono:          telefonoTrim,
+    fecha:             selectedDateTime,
+    hora,
+    comensales:        pax,
+    comentarios:       (comentarios ?? "").trim(),
+    marketing_consent: Boolean(marketing_consent),
+    estado:            bestTable ? "confirmada" : "pendiente",
+    mesa_id:           bestTable?.id ?? null,
+    duracion_min:      duracion,
+    creado_en:         new Date(),
+    notas:             "",
+  };
+
+  const docRef = await db.collection("reservas").add(reservaData);
+  console.log(`[createReserva] ${docRef.id} → ${reservaData.estado} (${restaurant_id})`);
+
+  return {
+    id:        docRef.id,
+    confirmed: !!bestTable,
+    mesa:      bestTable?.nombre ?? null,
+    hora,
+    pax,
+  };
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHEDULED: recordatoriosReservas
+// Runs daily at 10:00 (Europe/Madrid) and sends 24h reminder emails
+// to confirmed reservations for tomorrow (plan Pro only).
+// ─────────────────────────────────────────────────────────────────────────────
+exports.recordatoriosReservas = onSchedule(
+  { schedule: "0 10 * * *", timeZone: "Europe/Madrid" },
+  async () => {
+    const manana      = new Date();
+    manana.setDate(manana.getDate() + 1);
+    const startManana = new Date(manana.getFullYear(), manana.getMonth(), manana.getDate(), 0,  0,  0);
+    const endManana   = new Date(manana.getFullYear(), manana.getMonth(), manana.getDate(), 23, 59, 59);
+
+    const snap = await db.collection("reservas")
+      .where("estado", "==", "confirmada")
+      .where("fecha", ">=", startManana)
+      .where("fecha", "<=", endManana)
+      .get();
+
+    console.log(`[recordatorio] ${snap.docs.length} reservas confirmadas para mañana`);
+
+    for (const doc of snap.docs) {
+      const r = doc.data();
+      try {
+        const restaurante = await getRestauranteData(r.restaurant_id);
+        const planData    = PLANS[restaurante.plan || "trial"] || PLANS.trial;
+
+        if (!planData.recordatorio || restaurante.pausa_emails) continue;
+
+        const dateStr = (r.fecha.toDate ? r.fecha.toDate() : new Date(r.fecha))
+          .toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long" });
+
+        await resend.emails.send({
+          from:    FROM_EMAIL,
+          to:      [r.email],
+          subject: `Recordatorio: tu reserva en ${restaurante.nombre || "el restaurante"} es mañana`,
+          html:    templates.recordatorio(r.nombre_cliente, dateStr, r.hora, restaurante),
+        });
+        console.log(`[recordatorio] → ${r.email} (${doc.id})`);
+      } catch (e) {
+        console.error(`[recordatorio] error doc ${doc.id}:`, e.message);
+      }
+    }
+  }
+);
