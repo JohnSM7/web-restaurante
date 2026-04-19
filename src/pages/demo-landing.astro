@@ -44,18 +44,22 @@ import Footer from '../components/Footer.astro';
 </Layout>
 
 <style>
+  /* ── Altura del banner: variable que se propaga al resto ── */
+  :root { --banner-h: 2.375rem; }
+
   .demo-banner {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 9999;
+    height: var(--banner-h);
     background: #111;
     color: #fff;
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.04em;
-    padding: 0.5rem 1rem;
+    padding: 0 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -70,7 +74,7 @@ import Footer from '../components/Footer.astro';
   .demo-cta {
     background: #7c3aed;
     color: #fff;
-    padding: 0.25rem 0.75rem;
+    padding: 0.2rem 0.75rem;
     border-radius: 999px;
     text-decoration: none;
     font-size: 0.72rem;
@@ -78,8 +82,14 @@ import Footer from '../components/Footer.astro';
   }
   .demo-cta:hover { background: #6d28d9; }
 
-  /* Empujar el contenido para que no quede bajo el banner */
-  :global(#main-nav), :global(body > nav:first-of-type) {
-    top: 2.2rem !important;
+  /* Nav baja para dejar espacio al banner */
+  :global(.nav) {
+    top: var(--banner-h) !important;
+  }
+
+  /* Hero: padding-top aumenta para que el label no quede
+     bajo la suma banner + nav en pantallas pequeñas */
+  :global(.hero) {
+    padding-top: calc(var(--sp-24) + var(--banner-h)) !important;
   }
 </style>
