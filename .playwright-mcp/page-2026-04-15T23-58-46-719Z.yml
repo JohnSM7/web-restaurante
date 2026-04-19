@@ -1,0 +1,276 @@
+- generic [ref=e4]:
+  - navigation [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: TANE
+        - generic [ref=e9]: SUPREME
+      - button "Cerrar menú" [ref=e10] [cursor=pointer]: ✕
+    - navigation [ref=e11]:
+      - button "CLIENTES SAAS" [ref=e12] [cursor=pointer]:
+        - img [ref=e13]
+        - text: CLIENTES SAAS
+      - paragraph [ref=e183]: The Editorial
+      - button "RESERVAS 3" [ref=e184] [cursor=pointer]:
+        - img [ref=e185]
+        - text: RESERVAS
+        - generic [ref=e187]: "3"
+      - button "CRM CLIENTES" [ref=e188] [cursor=pointer]:
+        - img [ref=e189]
+        - text: CRM CLIENTES
+      - button "MAPA SALA" [ref=e193] [cursor=pointer]:
+        - img [ref=e194]
+        - text: MAPA SALA
+    - generic [ref=e16]:
+      - paragraph [ref=e17]: admin@tanesolutions.com
+      - generic [ref=e20]: EN VIVO ●
+      - button "Cerrar sesión" [ref=e21] [cursor=pointer]
+  - main [ref=e22]:
+    - generic [ref=e23]:
+      - button "Abrir menú" [ref=e25] [cursor=pointer]
+      - combobox [ref=e30] [cursor=pointer]:
+        - option "— Seleccionar restaurante —"
+        - option "Pangea"
+        - option "The Editorial" [selected]
+    - generic [ref=e197]:
+      - generic [ref=e198]:
+        - generic [ref=e199]:
+          - paragraph [ref=e200]: "10"
+          - paragraph [ref=e201]: Total
+        - generic [ref=e202]:
+          - paragraph [ref=e203]: "3"
+          - paragraph [ref=e204]: Pendientes
+        - generic [ref=e205]:
+          - paragraph [ref=e206]: "3"
+          - paragraph [ref=e207]: Confirmadas
+        - generic [ref=e208]:
+          - paragraph [ref=e209]: "42"
+          - paragraph [ref=e210]: Pax total
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - textbox [ref=e213]
+          - button "Hoy" [ref=e214] [cursor=pointer]
+        - generic [ref=e215]:
+          - button "Todas" [ref=e216] [cursor=pointer]
+          - button "Pendientes" [ref=e217] [cursor=pointer]
+          - button "Confirmadas" [ref=e218] [cursor=pointer]
+          - button "Canceladas" [ref=e219] [cursor=pointer]
+          - button "No Show" [ref=e220] [cursor=pointer]
+        - generic [ref=e221]:
+          - searchbox "Buscar nombre, email o teléfono…" [ref=e222]
+          - button "↻" [ref=e223] [cursor=pointer]:
+            - generic [ref=e224]: ↻
+      - generic [ref=e225]:
+        - article [ref=e226]:
+          - generic [ref=e228]:
+            - generic [ref=e229]:
+              - generic [ref=e230]:
+                - strong [ref=e231]: Belennn
+                - generic [ref=e232]: 8 pax
+                - generic [ref=e233]: PENDIENTE
+              - generic [ref=e234]:
+                - generic [ref=e235]: 14:30
+                - text: lun, 13 abr
+            - generic [ref=e236]:
+              - generic [ref=e237]:
+                - img [ref=e238]
+                - text: belenn.243@gmail.com
+              - generic [ref=e241]:
+                - img [ref=e242]
+                - text: "604121159"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e245]
+          - generic [ref=e246]:
+            - button "✓ APROBAR" [ref=e247] [cursor=pointer]
+            - button "✕ RECHAZAR" [ref=e248] [cursor=pointer]
+        - article [ref=e249]:
+          - generic [ref=e251]:
+            - generic [ref=e252]:
+              - generic [ref=e253]:
+                - strong [ref=e254]: Demo5
+                - generic [ref=e255]: 2 pax
+                - generic [ref=e256]: PENDIENTE
+              - generic [ref=e257]:
+                - generic [ref=e258]: 14:30
+                - text: vie, 17 abr
+            - generic [ref=e259]:
+              - generic [ref=e260]:
+                - img [ref=e261]
+                - text: rankusx@gmail.com
+              - generic [ref=e264]:
+                - img [ref=e265]
+                - text: "635251113"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e268]
+          - generic [ref=e269]:
+            - button "✓ APROBAR" [ref=e270] [cursor=pointer]
+            - button "✕ RECHAZAR" [ref=e271] [cursor=pointer]
+        - article [ref=e272]:
+          - generic [ref=e274]:
+            - generic [ref=e275]:
+              - generic [ref=e276]:
+                - strong [ref=e277]: Harry potter
+                - generic [ref=e278]: 3 pax
+                - generic [ref=e279]: PENDIENTE
+              - generic [ref=e280]:
+                - generic [ref=e281]: 15:00
+                - text: mié, 15 abr
+            - generic [ref=e282]:
+              - generic [ref=e283]:
+                - img [ref=e284]
+                - text: soyelelegido@outlook.com
+              - generic [ref=e287]:
+                - img [ref=e288]
+                - text: "636525636"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e291]
+          - generic [ref=e292]:
+            - button "✓ APROBAR" [ref=e293] [cursor=pointer]
+            - button "✕ RECHAZAR" [ref=e294] [cursor=pointer]
+        - article [ref=e295]:
+          - generic [ref=e297]:
+            - generic [ref=e298]:
+              - generic [ref=e299]:
+                - strong [ref=e300]: demo
+                - generic [ref=e301]: 5 pax
+                - generic [ref=e302]: CANCELADA
+              - generic [ref=e303]:
+                - generic [ref=e304]: 15:00
+                - text: mié, 15 abr
+            - generic [ref=e305]:
+              - generic [ref=e306]:
+                - img [ref=e307]
+                - text: john.sm@psicosoft.com
+              - generic [ref=e310]:
+                - img [ref=e311]
+                - text: "635251113"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e314]
+          - button "↩ RESTAURAR" [ref=e316] [cursor=pointer]
+        - article [ref=e317]:
+          - generic [ref=e319]:
+            - generic [ref=e320]:
+              - generic [ref=e321]:
+                - strong [ref=e322]: Dennys
+                - generic [ref=e323]: 2 pax
+                - generic [ref=e324]: CANCELADA
+              - generic [ref=e325]:
+                - generic [ref=e326]: 15:30
+                - text: mié, 15 abr
+            - generic [ref=e327]:
+              - generic [ref=e328]:
+                - img [ref=e329]
+                - text: pdennys.carrillo@gmail.com
+              - generic [ref=e332]:
+                - img [ref=e333]
+                - text: "647833410"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e336]
+          - button "↩ RESTAURAR" [ref=e338] [cursor=pointer]
+        - article [ref=e339]:
+          - generic [ref=e341]:
+            - generic [ref=e342]:
+              - generic [ref=e343]:
+                - strong [ref=e344]: Juan
+                - generic [ref=e345]: 6 pax
+                - generic [ref=e346]: CONFIRMADA
+              - generic [ref=e347]:
+                - generic [ref=e348]: 15:30
+                - text: vie, 17 abr
+            - generic [ref=e349]:
+              - generic [ref=e350]:
+                - img [ref=e351]
+                - text: john.sandoval170@gmail.com
+              - generic [ref=e354]:
+                - img [ref=e355]
+                - text: "635251113"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e358]
+          - generic [ref=e359]:
+            - button "⊘ NO SHOW" [ref=e360] [cursor=pointer]
+            - button "CANCELAR" [ref=e361] [cursor=pointer]
+        - article [ref=e362]:
+          - generic [ref=e364]:
+            - generic [ref=e365]:
+              - generic [ref=e366]:
+                - strong [ref=e367]: Belletrix
+                - generic [ref=e368]: 9 pax
+                - generic [ref=e369]: CANCELADA
+              - generic [ref=e370]:
+                - generic [ref=e371]: 20:30
+                - text: vie, 17 abr
+            - generic [ref=e372]:
+              - generic [ref=e373]:
+                - img [ref=e374]
+                - text: Belenn.243@gmail.com
+              - generic [ref=e377]:
+                - img [ref=e378]
+                - text: "604121159"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e381]
+          - button "↩ RESTAURAR" [ref=e383] [cursor=pointer]
+        - article [ref=e384]:
+          - generic [ref=e386]:
+            - generic [ref=e387]:
+              - generic [ref=e388]:
+                - strong [ref=e389]: Susana Madriz
+                - generic [ref=e390]: 1 pax
+                - generic [ref=e391]: CONFIRMADA
+              - generic [ref=e392]:
+                - generic [ref=e393]: 21:00
+                - text: vie, 17 abr
+            - generic [ref=e394]:
+              - generic [ref=e395]:
+                - img [ref=e396]
+                - text: Chachimad@hotmail.com
+              - generic [ref=e399]:
+                - img [ref=e400]
+                - text: "684123159"
+              - generic [ref=e402]:
+                - img [ref=e403]
+                - text: T1
+            - generic [ref=e405]:
+              - text: 💬
+              - emphasis [ref=e406]: Soy celíaca
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e408]
+          - generic [ref=e409]:
+            - button "⊘ NO SHOW" [ref=e410] [cursor=pointer]
+            - button "CANCELAR" [ref=e411] [cursor=pointer]
+        - article [ref=e412]:
+          - generic [ref=e414]:
+            - generic [ref=e415]:
+              - generic [ref=e416]:
+                - strong [ref=e417]: Juan
+                - generic [ref=e418]: 4 pax
+                - generic [ref=e419]: CONFIRMADA
+              - generic [ref=e420]:
+                - generic [ref=e421]: 22:00
+                - text: vie, 17 abr
+            - generic [ref=e422]:
+              - generic [ref=e423]:
+                - img [ref=e424]
+                - text: rankusx@gmail.com
+              - generic [ref=e427]:
+                - img [ref=e428]
+                - text: "635251113"
+              - generic [ref=e430]:
+                - img [ref=e431]
+                - text: T2
+            - generic [ref=e433]:
+              - text: 💬
+              - emphasis [ref=e434]: Cumplee
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e436]
+          - generic [ref=e437]:
+            - button "⊘ NO SHOW" [ref=e438] [cursor=pointer]
+            - button "CANCELAR" [ref=e439] [cursor=pointer]
+        - article [ref=e440]:
+          - generic [ref=e442]:
+            - generic [ref=e443]:
+              - generic [ref=e444]:
+                - strong [ref=e445]: demo1
+                - generic [ref=e446]: 2 pax
+                - generic [ref=e447]: CANCELADA
+              - generic [ref=e448]:
+                - generic [ref=e449]: 22:00
+                - text: mié, 15 abr
+            - generic [ref=e450]:
+              - generic [ref=e451]:
+                - img [ref=e452]
+                - text: john.sandoval@hotmail.es
+              - generic [ref=e455]:
+                - img [ref=e456]
+                - text: "635251113"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e459]
+          - button "↩ RESTAURAR" [ref=e461] [cursor=pointer]

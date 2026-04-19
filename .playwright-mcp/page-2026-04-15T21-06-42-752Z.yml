@@ -1,0 +1,11 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - img [ref=e4]
+    - link [ref=e6] [cursor=pointer]:
+      - /url: /
+      - text: Demo
+      - emphasis [ref=e7]: Hostelería
+  - alert [ref=e101]:
+    - img [ref=e103]
+    - paragraph [ref=e105]: ¡Solicitud recibida!
+    - paragraph [ref=e106]: Revisaremos tu solicitud y te confirmaremos por email.

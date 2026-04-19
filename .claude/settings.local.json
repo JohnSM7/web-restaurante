@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(npm list:*)",
+      "Bash(npx --yes @modelcontextprotocol/server-github --version)",
+      "Bash(npm info:*)",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_wait_for",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_network_requests",
+      "mcp__plugin_firebase_firebase__auth_get_users",
+      "mcp__plugin_firebase_firebase__firestore_query_collection",
+      "mcp__plugin_playwright_playwright__browser_fill_form",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_firebase_firebase__firestore_get_document",
+      "mcp__plugin_firebase_firebase__firestore_list_documents",
+      "mcp__plugin_firebase_firebase__firestore_add_document",
+      "mcp__plugin_firebase_firebase__firestore_delete_document",
+      "mcp__plugin_firebase_firebase__functions_get_logs",
+      "mcp__plugin_firebase_firebase__firestore_list_collections",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_run_code"
+    ]
+  }
+}

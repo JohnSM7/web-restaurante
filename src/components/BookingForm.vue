@@ -261,6 +261,10 @@ onMounted(async () => {
         };
       }
       modoConfirmacion.value = data.modo_confirmacion ?? 'auto';
+      // Apply restaurant brand color to CSS custom property
+      if (data.color_widget && /^#[0-9a-fA-F]{6}$/.test(data.color_widget)) {
+        document.documentElement.style.setProperty('--brand', data.color_widget);
+      }
     } else {
       restaurantName.value = resolvedId.value.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
     }
@@ -570,6 +574,9 @@ const submitBooking = async () => {
    Hereda tokens de global.css
 ════════════════════════════════════════════════════ */
 
+/* Brand color token — overridden dynamically per restaurant */
+:root { --brand: #000000; }
+
 .booking-form-wrap {
   font-family: 'Work Sans', system-ui, sans-serif;
   max-width: 600px;
@@ -698,8 +705,8 @@ const submitBooking = async () => {
   transition: background 0.18s, color 0.18s, border-color 0.18s, opacity 0.18s;
   position: relative;
 }
-.time-slot:hover:not(:disabled) { background: #000; color: #fff; }
-.time-slot--selected { background: #000; color: #fff; border-color: #000; }
+.time-slot:hover:not(:disabled) { background: var(--brand, #000); color: #fff; }
+.time-slot--selected { background: var(--brand, #000); color: #fff; border-color: var(--brand, #000); }
 .time-slot--full {
   border-color: #e0e0e0; color: #ccc;
   cursor: not-allowed; opacity: 0.55;
@@ -751,7 +758,7 @@ const submitBooking = async () => {
 .submit-btn {
   display: flex; align-items: center; justify-content: center; gap: 0.625rem;
   width: 100%;
-  background: #000; color: #fff;
+  background: var(--brand, #000); color: #fff;
   padding: 1.5rem 2rem;
   font-family: inherit;
   font-size: 0.8rem; font-weight: 700;

@@ -1,0 +1,64 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - img [ref=e4]
+    - link [ref=e6] [cursor=pointer]:
+      - /url: /
+      - text: Demo
+      - emphasis [ref=e7]: Hostelería
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - paragraph [ref=e13]: Reservation
+      - heading "Mesa para dos?" [level=1] [ref=e14]:
+        - text: Mesa para
+        - emphasis [ref=e15]: dos?
+      - paragraph [ref=e16]: Únete a nosotros para una experiencia culinaria mediterránea inolvidable. Cada detalle está cuidado para deleitar tus sentidos.
+    - generic [ref=e17]:
+      - group [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]: Nombre completo
+            - textbox "Nombre completo" [ref=e22]:
+              - /placeholder: Tu nombre completo
+          - generic [ref=e23]:
+            - generic [ref=e24]: Correo electrónico
+            - textbox "Correo electrónico" [ref=e25]:
+              - /placeholder: email@ejemplo.com
+      - group [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]: Teléfono
+            - textbox "Teléfono" [ref=e30]:
+              - /placeholder: +34 600 000 000
+          - generic [ref=e31]:
+            - generic [ref=e32]: Fecha
+            - textbox "Fecha" [ref=e33]
+          - generic [ref=e34]:
+            - generic [ref=e35]: Comensales
+            - generic [ref=e36]:
+              - button "Reducir comensales" [ref=e37] [cursor=pointer]: −
+              - generic [ref=e38]: "2"
+              - button "Aumentar comensales" [ref=e39] [cursor=pointer]: +
+            - paragraph [ref=e40]: máx. 20 personas
+      - group [ref=e41]:
+        - text: Hora del servicio
+        - generic [ref=e42]: Selecciona una fecha para ver disponibilidad de horarios.
+      - group [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: Peticiones especiales (opcional)
+          - textbox "Peticiones especiales (opcional)" [ref=e46]:
+            - /placeholder: "Ej: Tenemos un comensal celíaco, preferimos mesa cerca de la ventana, celebración de cumpleaños…"
+      - group [ref=e47]:
+        - generic [ref=e48] [cursor=pointer]:
+          - checkbox "Deseo recibir novedades, promociones e invitaciones exclusivas de este restaurante. Puedes darte de baja en cualquier momento." [checked] [ref=e49]
+          - generic [ref=e50]:
+            - text: Deseo recibir novedades, promociones e invitaciones exclusivas de
+            - strong [ref=e51]: este restaurante
+            - text: .
+            - generic [ref=e52]: Puedes darte de baja en cualquier momento.
+      - generic [ref=e53]:
+        - button "CONFIRMAR RESERVA" [ref=e54] [cursor=pointer]
+        - paragraph [ref=e55]:
+          - text: Al confirmar, aceptas nuestra
+          - link "Política de Privacidad" [ref=e56] [cursor=pointer]:
+            - /url: "#"
+          - text: y los términos del servicio. Los datos serán tratados según la LOPDGDD.

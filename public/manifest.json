@@ -1,0 +1,20 @@
+{
+  "name": "Tane Booking",
+  "short_name": "Tane",
+  "description": "Panel de gestión de reservas para restaurantes",
+  "start_url": "/admin/dashboard",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "es"
+}

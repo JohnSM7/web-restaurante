@@ -1,0 +1,2 @@
+[   14289ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://us-central1-tanesolutions-d86dc.cloudfunctions.net/getPlanUsage:0
+[   14290ms] [WARNING] [plan] could not fetch usage: INTERNAL @ https://tane-restaurante-app.web.app/_astro/AdminTable.DkcYNZ-y.js:0

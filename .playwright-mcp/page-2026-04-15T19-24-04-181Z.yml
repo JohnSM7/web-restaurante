@@ -1,0 +1,14 @@
+- generic [ref=e5]:
+  - banner [ref=e6]:
+    - heading "TANE" [level=1] [ref=e7]
+    - paragraph [ref=e8]: BOOKING SYSTEM
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]: Email
+      - textbox "Email" [ref=e12]:
+        - /placeholder: admin@empresa.com
+    - generic [ref=e13]:
+      - generic [ref=e14]: Contraseña
+      - textbox "Contraseña" [ref=e15]:
+        - /placeholder: ••••••••
+    - button "INICIAR SESIÓN" [ref=e16] [cursor=pointer]

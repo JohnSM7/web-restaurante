@@ -1,0 +1,151 @@
+- generic [ref=e4]:
+  - navigation [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: TANE
+        - generic [ref=e9]: SUPREME
+      - button "Cerrar menú" [ref=e10] [cursor=pointer]: ✕
+    - navigation [ref=e11]:
+      - button "← CLIENTES SAAS" [ref=e58] [cursor=pointer]
+      - button "CLIENTES SAAS" [ref=e12] [cursor=pointer]:
+        - img [ref=e13]
+        - text: CLIENTES SAAS
+    - generic [ref=e16]:
+      - paragraph [ref=e17]: admin@tanesolutions.com
+      - generic [ref=e20]: Conectando…
+      - button "Cerrar sesión" [ref=e21] [cursor=pointer]
+  - main [ref=e22]:
+    - generic [ref=e23]:
+      - button "Abrir menú" [ref=e25] [cursor=pointer]
+      - combobox [ref=e30] [cursor=pointer]:
+        - option "— Seleccionar restaurante —" [selected]
+        - option "Pangea"
+        - option "The Editorial"
+    - generic [ref=e59]:
+      - generic [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]: Activo
+              - generic [ref=e66]: trial
+            - button "VER RESERVAS" [ref=e67] [cursor=pointer]:
+              - img [ref=e68]
+              - text: VER RESERVAS
+          - heading "The Editorial" [level=2] [ref=e70]
+          - paragraph [ref=e71]:
+            - code [ref=e72]: the-editorial
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]: "10"
+            - generic [ref=e76]: Reservas
+          - generic [ref=e77]:
+            - generic [ref=e78]: "7"
+            - generic [ref=e79]: Mesas
+          - generic [ref=e80]:
+            - generic [ref=e81]: "0"
+            - generic [ref=e82]: Usuarios
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - heading "Datos del restaurante" [level=4] [ref=e86]:
+              - img [ref=e87]
+              - text: Datos del restaurante
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - text: Nombre
+                - textbox "Nombre del restaurante" [ref=e92]: The Editorial
+              - generic [ref=e93]:
+                - text: Dirección
+                - textbox "Calle, número, ciudad" [ref=e94]
+              - generic [ref=e95]:
+                - generic [ref=e96]:
+                  - text: Teléfono
+                  - textbox "+34 600 000 000" [ref=e97]
+                - generic [ref=e98]:
+                  - text: Email contacto
+                  - textbox "info@restaurante.com" [ref=e99]
+              - generic [ref=e100]:
+                - text: Sitio web
+                - textbox "https://restaurante.com" [ref=e101]
+              - generic [ref=e102]:
+                - generic [ref=e103]:
+                  - text: Plan
+                  - combobox [ref=e104] [cursor=pointer]:
+                    - option "Trial (gratis)" [selected]
+                    - option "Basic"
+                    - option "Pro"
+                - generic [ref=e105]:
+                  - text: Estado
+                  - generic [ref=e109] [cursor=pointer]: Activo
+              - generic [ref=e110]:
+                - text: Confirmación de reservas
+                - combobox [ref=e111] [cursor=pointer]:
+                  - option "Automática — confirma si hay mesa disponible" [selected]
+                  - option "Manual — el admin confirma siempre"
+              - button "Guardar cambios" [ref=e113] [cursor=pointer]
+          - generic [ref=e114]:
+            - heading "Horarios de reservas" [level=4] [ref=e115]:
+              - img [ref=e116]
+              - text: Horarios de reservas
+            - paragraph [ref=e119]: Los turnos configurados aquí generan automáticamente las franjas horarias del formulario de reservas.
+            - generic [ref=e120]:
+              - generic [ref=e121]:
+                - generic [ref=e122]:
+                  - img [ref=e123]
+                  - text: Comida
+                - generic [ref=e126]:
+                  - textbox [ref=e127]: 13:00
+                  - generic [ref=e128]: →
+                  - textbox [ref=e129]: 17:00
+              - generic [ref=e130]:
+                - generic [ref=e131]:
+                  - img [ref=e132]
+                  - text: Cena
+                - generic [ref=e134]:
+                  - textbox [ref=e135]: 20:00
+                  - generic [ref=e136]: →
+                  - textbox [ref=e137]: 00:00
+            - generic [ref=e138]:
+              - text: Intervalo entre franjas
+              - combobox [ref=e139] [cursor=pointer]:
+                - option "15 minutos"
+                - option "30 minutos" [selected]
+                - option "60 minutos (cada hora)"
+            - button "Guardar horarios" [ref=e141] [cursor=pointer]
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - heading "Plan actual" [level=4] [ref=e144]:
+              - img [ref=e145]
+              - text: Plan actual
+            - generic [ref=e147]: Cargando uso del plan…
+          - generic [ref=e148]:
+            - heading "URLs del sistema" [level=4] [ref=e149]:
+              - img [ref=e150]
+              - text: URLs del sistema
+            - generic [ref=e153]:
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - generic [ref=e156]: Formulario de reservas
+                  - code [ref=e157]: /booking?id=the-editorial
+                - button "Copiar" [ref=e158] [cursor=pointer]
+              - generic [ref=e159]:
+                - generic [ref=e160]:
+                  - generic [ref=e161]: Widget embebible
+                  - code [ref=e162]: /booking-widget?id=the-editorial
+                - button "Copiar" [ref=e163] [cursor=pointer]
+              - generic [ref=e164]:
+                - generic [ref=e165]:
+                  - generic [ref=e166]: Panel admin
+                  - code [ref=e167]: /admin/dashboard?id=the-editorial
+                - button "Copiar" [ref=e168] [cursor=pointer]
+          - generic [ref=e169]:
+            - heading "Accesos + Añadir" [level=4] [ref=e170]:
+              - img [ref=e171]
+              - text: Accesos
+              - button "+ Añadir" [ref=e175] [cursor=pointer]
+            - generic [ref=e176]: Sin usuarios asignados aún.
+      - generic [ref=e178]:
+        - generic [ref=e179]:
+          - heading "Zona de peligro" [level=4] [ref=e180]
+          - paragraph [ref=e181]: Dar de baja eliminará el perfil del restaurante de la plataforma. Las reservas existentes NO se borrarán.
+        - button "Dar de baja" [ref=e182] [cursor=pointer]

@@ -1,0 +1,116 @@
+- generic [ref=e18]:
+  - navigation [ref=e19]:
+    - generic [ref=e21]:
+      - generic [ref=e22]: TANE
+      - generic [ref=e23]: SUPREME
+    - navigation [ref=e24]:
+      - button "← CLIENTES SAAS" [ref=e58] [cursor=pointer]
+      - button "CLIENTES SAAS" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+        - text: CLIENTES SAAS
+    - generic [ref=e29]:
+      - paragraph [ref=e30]: admin@tanesolutions.com
+      - generic [ref=e33]: Conectando…
+      - button "Cerrar sesión" [ref=e34] [cursor=pointer]
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - heading "Pangea" [level=2] [ref=e59]
+      - combobox [ref=e40] [cursor=pointer]:
+        - option "— Seleccionar restaurante —" [selected]
+        - option "Pangea"
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - heading "Pangea" [level=3] [ref=e63]
+          - paragraph [ref=e64]:
+            - text: "ID:"
+            - code [ref=e65]: pangea
+        - button "VER RESERVAS" [ref=e67] [cursor=pointer]:
+          - img [ref=e68]
+          - text: VER RESERVAS
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - heading "Datos del restaurante" [level=4] [ref=e72]
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - text: Nombre
+              - textbox "Nombre del restaurante" [ref=e75]: Pangea
+            - generic [ref=e76]:
+              - text: Dirección
+              - textbox "Calle, número, ciudad" [ref=e77]
+            - generic [ref=e78]:
+              - generic [ref=e79]:
+                - text: Teléfono
+                - textbox "+34 600 000 000" [ref=e80]
+              - generic [ref=e81]:
+                - text: Email contacto
+                - textbox "info@restaurante.com" [ref=e82]
+            - generic [ref=e83]:
+              - text: Sitio web
+              - textbox "https://restaurante.com" [ref=e84]
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - text: Plan
+                - combobox [ref=e87] [cursor=pointer]:
+                  - option "Trial (gratis)"
+                  - option "Basic" [selected]
+                  - option "Pro"
+              - generic [ref=e88]:
+                - text: Estado
+                - generic [ref=e92] [cursor=pointer]: Activo
+            - button "Guardar cambios" [ref=e93] [cursor=pointer]
+        - generic [ref=e94]:
+          - heading "Horarios de reservas" [level=4] [ref=e95]
+          - generic [ref=e96]:
+            - paragraph [ref=e97]: Define los turnos disponibles y el intervalo entre franjas. BookingForm lo usará automáticamente.
+            - generic [ref=e98]:
+              - generic [ref=e99]: Comida
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - text: Inicio
+                  - textbox [ref=e102]: 13:00
+                - generic [ref=e103]:
+                  - text: Fin
+                  - textbox [ref=e104]: 17:00
+            - generic [ref=e105]:
+              - generic [ref=e106]: Cena
+              - generic [ref=e107]:
+                - generic [ref=e108]:
+                  - text: Inicio
+                  - textbox [ref=e109]: 20:00
+                - generic [ref=e110]:
+                  - text: Fin
+                  - textbox [ref=e111]: 00:00
+            - generic [ref=e112]:
+              - text: Intervalo entre franjas
+              - combobox [ref=e113] [cursor=pointer]:
+                - option "15 minutos"
+                - option "30 minutos" [selected]
+                - option "60 minutos (cada hora)"
+            - button "Guardar horarios" [ref=e114] [cursor=pointer]
+        - generic [ref=e115]:
+          - heading "URLs del sistema" [level=4] [ref=e116]
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - generic [ref=e120]: Formulario de reservas
+                - generic [ref=e121]: /booking?id=pangea
+              - button "Copiar" [ref=e122] [cursor=pointer]
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - generic [ref=e125]: Widget embebible
+                - generic [ref=e126]: /booking-widget?id=pangea
+              - button "Copiar" [ref=e127] [cursor=pointer]
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - generic [ref=e130]: Panel admin restaurante
+                - generic [ref=e131]: /admin/dashboard?id=pangea
+              - button "Copiar" [ref=e132] [cursor=pointer]
+          - heading "Accesos y usuarios + Añadir acceso" [level=4] [ref=e133]:
+            - text: Accesos y usuarios
+            - button "+ Añadir acceso" [ref=e134] [cursor=pointer]
+          - generic [ref=e135]: Sin usuarios asignados. Añade el primer acceso.
+      - generic [ref=e136]:
+        - heading "Zona de peligro" [level=4] [ref=e137]
+        - paragraph [ref=e138]: Dar de baja eliminará el perfil del restaurante de la plataforma. Las reservas existentes NO se borrarán.
+        - button "Dar de baja Pangea" [ref=e139] [cursor=pointer]

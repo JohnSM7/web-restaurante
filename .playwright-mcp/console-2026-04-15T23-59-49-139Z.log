@@ -1,0 +1,10 @@
+[   24100ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://us-central1-tanesolutions-d86dc.cloudfunctions.net/getPlanUsage:0
+[   24100ms] [WARNING] [plan] could not fetch usage: INTERNAL @ https://tane-restaurante-app.web.app/_astro/AdminTable.qQxpBRZJ.js:0
+[  568192ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://us-central1-tanesolutions-d86dc.cloudfunctions.net/getPlanUsage:0
+[  568192ms] [WARNING] [plan] could not fetch usage: INTERNAL @ https://tane-restaurante-app.web.app/_astro/AdminTable.BhIuJWVP.js:0
+[  578782ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://us-central1-tanesolutions-d86dc.cloudfunctions.net/getPlanUsage:0
+[  578782ms] [WARNING] [plan] could not fetch usage: INTERNAL @ https://tane-restaurante-app.web.app/_astro/AdminTable.BhIuJWVP.js:0
+[  879325ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://us-central1-tanesolutions-d86dc.cloudfunctions.net/getPlanUsage:0
+[  879326ms] [WARNING] [plan] could not fetch usage: INTERNAL @ https://tane-restaurante-app.web.app/_astro/AdminTable.CXOV_C3g.js:0
+[ 1101678ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://us-central1-tanesolutions-d86dc.cloudfunctions.net/getPlanUsage:0
+[ 1101678ms] [WARNING] [plan] could not fetch usage: INTERNAL @ https://tane-restaurante-app.web.app/_astro/AdminTable.DkcYNZ-y.js:0

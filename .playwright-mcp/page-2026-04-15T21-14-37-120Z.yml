@@ -1,0 +1,200 @@
+- generic [ref=e18]:
+  - navigation [ref=e19]:
+    - generic [ref=e21]:
+      - generic [ref=e22]: TANE
+      - generic [ref=e23]: SUPREME
+    - navigation [ref=e24]:
+      - button "CLIENTES SAAS" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+        - text: CLIENTES SAAS
+      - paragraph [ref=e140]: Pangea
+      - button "RESERVAS 4" [ref=e330] [cursor=pointer]:
+        - img [ref=e142]
+        - text: RESERVAS
+        - generic [ref=e144]: "4"
+      - button "CRM CLIENTES" [ref=e145] [cursor=pointer]:
+        - img [ref=e146]
+        - text: CRM CLIENTES
+      - button "MAPA SALA" [ref=e150] [cursor=pointer]:
+        - img [ref=e151]
+        - text: MAPA SALA
+    - generic [ref=e29]:
+      - paragraph [ref=e30]: admin@tanesolutions.com
+      - generic [ref=e33]: EN VIVO ●
+      - button "Cerrar sesión" [ref=e34] [cursor=pointer]
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - heading "Pangea" [level=2] [ref=e59]
+      - combobox [ref=e40] [cursor=pointer]:
+        - option "— Seleccionar restaurante —"
+        - option "Pangea" [selected]
+    - generic [ref=e154]:
+      - generic [ref=e155]:
+        - generic [ref=e156]:
+          - paragraph [ref=e157]: "6"
+          - paragraph [ref=e158]: Total
+        - generic [ref=e159]:
+          - paragraph [ref=e160]: "4"
+          - paragraph [ref=e161]: Pendientes
+        - generic [ref=e162]:
+          - paragraph [ref=e163]: "2"
+          - paragraph [ref=e164]: Confirmadas
+        - generic [ref=e165]:
+          - paragraph [ref=e166]: "24"
+          - paragraph [ref=e167]: Pax total
+      - generic [ref=e168]:
+        - generic [ref=e169]:
+          - textbox [ref=e170]
+          - button "Hoy" [ref=e171] [cursor=pointer]
+        - generic [ref=e172]:
+          - button "Todas" [ref=e173] [cursor=pointer]
+          - button "Pendientes" [ref=e174] [cursor=pointer]
+          - button "Confirmadas" [ref=e175] [cursor=pointer]
+          - button "Canceladas" [ref=e176] [cursor=pointer]
+          - button "No Show" [ref=e177] [cursor=pointer]
+        - generic [ref=e178]:
+          - searchbox "Buscar nombre, email o teléfono…" [ref=e179]
+          - button "↻" [ref=e180] [cursor=pointer]:
+            - generic [ref=e181]: ↻
+      - generic [ref=e182]:
+        - article [ref=e183]:
+          - generic [ref=e185]:
+            - generic [ref=e186]:
+              - generic [ref=e187]:
+                - strong [ref=e188]: john sandoval
+                - generic [ref=e189]: 5 pax
+                - generic [ref=e190]: PENDIENTE
+              - generic [ref=e191]:
+                - generic [ref=e192]: 14:00
+                - text: jue, 16 abr
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - img [ref=e195]
+                - text: rankusx@gmail.com
+              - generic [ref=e198]:
+                - img [ref=e199]
+                - text: "635251113"
+            - generic [ref=e201]:
+              - text: 💬
+              - emphasis [ref=e202]: Cumple
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e204]
+          - generic [ref=e205]:
+            - button "✓ APROBAR" [ref=e206] [cursor=pointer]
+            - button "✕ RECHAZAR" [ref=e207] [cursor=pointer]
+        - article [ref=e208]:
+          - generic [ref=e210]:
+            - generic [ref=e211]:
+              - generic [ref=e212]:
+                - strong [ref=e213]: john sandoval
+                - generic [ref=e214]: 5 pax
+                - generic [ref=e215]: PENDIENTE
+              - generic [ref=e216]:
+                - generic [ref=e217]: 15:00
+                - text: jue, 16 abr
+            - generic [ref=e218]:
+              - generic [ref=e219]:
+                - img [ref=e220]
+                - text: john.sandoval@hotmail.es
+              - generic [ref=e223]:
+                - img [ref=e224]
+                - text: "635251113"
+            - generic [ref=e226]:
+              - text: 💬
+              - emphasis [ref=e227]: demooo
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e229]
+          - generic [ref=e230]:
+            - button "✓ APROBAR" [ref=e231] [cursor=pointer]
+            - button "✕ RECHAZAR" [ref=e232] [cursor=pointer]
+        - article [ref=e233]:
+          - generic [ref=e235]:
+            - generic [ref=e236]:
+              - generic [ref=e237]:
+                - strong [ref=e238]: john sandoval
+                - generic [ref=e239]: 5 pax
+                - generic [ref=e240]: PENDIENTE
+              - generic [ref=e241]:
+                - generic [ref=e242]: 15:00
+                - text: jue, 16 abr
+            - generic [ref=e243]:
+              - generic [ref=e244]:
+                - img [ref=e245]
+                - text: john.sandoval@hotmail.es
+              - generic [ref=e248]:
+                - img [ref=e249]
+                - text: "635251113"
+            - generic [ref=e251]:
+              - text: 💬
+              - emphasis [ref=e252]: demooo
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e254]
+          - generic [ref=e255]:
+            - button "✓ APROBAR" [ref=e256] [cursor=pointer]
+            - button "✕ RECHAZAR" [ref=e257] [cursor=pointer]
+        - article [ref=e258]:
+          - generic [ref=e260]:
+            - generic [ref=e261]:
+              - generic [ref=e262]:
+                - strong [ref=e263]: john sandoval
+                - generic [ref=e264]: 5 pax
+                - generic [ref=e265]: PENDIENTE
+              - generic [ref=e266]:
+                - generic [ref=e267]: 16:00
+                - text: jue, 16 abr
+            - generic [ref=e268]:
+              - generic [ref=e269]:
+                - img [ref=e270]
+                - text: john.sandoval@hotmail.es
+              - generic [ref=e273]:
+                - img [ref=e274]
+                - text: "635251113"
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e277]
+          - generic [ref=e278]:
+            - button "✓ APROBAR" [ref=e279] [cursor=pointer]
+            - button "✕ RECHAZAR" [ref=e280] [cursor=pointer]
+        - article [ref=e281]:
+          - generic [ref=e283]:
+            - generic [ref=e284]:
+              - generic [ref=e285]:
+                - strong [ref=e286]: Test Flujo Completo
+                - generic [ref=e287]: 2 pax
+                - generic [ref=e288]: CONFIRMADA
+              - generic [ref=e289]:
+                - generic [ref=e290]: 20:00
+                - text: lun, 20 abr
+            - generic [ref=e291]:
+              - generic [ref=e292]:
+                - img [ref=e293]
+                - text: test@tanesolutions.com
+              - generic [ref=e296]:
+                - img [ref=e297]
+                - text: +34 600 111 222
+              - generic [ref=e299]:
+                - img [ref=e300]
+                - text: Mesa 2
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e303]
+          - generic [ref=e304]:
+            - button "⊘ NO SHOW" [ref=e305] [cursor=pointer]
+            - button "CANCELAR" [ref=e306] [cursor=pointer]
+        - article [ref=e307]:
+          - generic [ref=e309]:
+            - generic [ref=e310]:
+              - generic [ref=e311]:
+                - strong [ref=e312]: Test Playwright
+                - generic [ref=e313]: 2 pax
+                - generic [ref=e314]: CONFIRMADA
+              - generic [ref=e315]:
+                - generic [ref=e316]: 20:00
+                - text: lun, 20 abr
+            - generic [ref=e317]:
+              - generic [ref=e318]:
+                - img [ref=e319]
+                - text: test@playwright.com
+              - generic [ref=e322]:
+                - img [ref=e323]
+                - text: +34 600 000 001
+              - generic [ref=e331]:
+                - img [ref=e332]
+                - text: Mesa 1
+            - textbox "Nota interna del staff (se guarda automáticamente)…" [ref=e326]
+          - generic [ref=e327]:
+            - button "⊘ NO SHOW" [ref=e334] [cursor=pointer]
+            - button "CANCELAR" [ref=e335] [cursor=pointer]

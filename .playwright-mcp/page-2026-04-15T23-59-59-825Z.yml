@@ -1,0 +1,49 @@
+- generic [ref=e7]:
+  - navigation [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: TANE
+        - generic [ref=e12]: SUPREME
+      - button "Cerrar menú" [ref=e13] [cursor=pointer]: ✕
+    - navigation [ref=e14]:
+      - button "CLIENTES SAAS" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - text: CLIENTES SAAS
+    - generic [ref=e19]:
+      - paragraph [ref=e20]: admin@tanesolutions.com
+      - generic [ref=e23]: Conectando…
+      - button "Cerrar sesión" [ref=e24] [cursor=pointer]
+  - main [ref=e25]:
+    - generic [ref=e26]:
+      - button "Abrir menú" [ref=e28] [cursor=pointer]
+      - combobox [ref=e33] [cursor=pointer]:
+        - option "— Seleccionar restaurante —" [selected]
+        - option "Pangea"
+        - option "The Editorial"
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - heading "Clientes SaaS" [level=3] [ref=e37]
+          - paragraph [ref=e38]: 2 restaurantes en la plataforma
+        - button "+ NUEVO CLIENTE" [ref=e39] [cursor=pointer]
+      - generic [ref=e40]:
+        - article [ref=e41]:
+          - generic [ref=e42]:
+            - heading "Pangea" [level=4] [ref=e43]
+            - generic [ref=e44]: ACTIVO
+          - paragraph [ref=e46]:
+            - text: "slug:"
+            - code [ref=e47]: pangea
+          - generic [ref=e48]:
+            - button "Ver perfil →" [ref=e49] [cursor=pointer]
+            - button "Dar de baja" [ref=e50] [cursor=pointer]
+        - article [ref=e51]:
+          - generic [ref=e52]:
+            - heading "The Editorial" [level=4] [ref=e53]
+            - generic [ref=e54]: ACTIVO
+          - paragraph [ref=e56]:
+            - text: "slug:"
+            - code [ref=e57]: the-editorial
+          - generic [ref=e58]:
+            - button "Ver perfil →" [ref=e59] [cursor=pointer]
+            - button "Dar de baja" [ref=e60] [cursor=pointer]

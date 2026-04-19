@@ -1,0 +1,4 @@
+[   10454ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDPA6dsESrVZ_Z_Z9kEcUU7PchmLouBgDA:0
+[ 2933760ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDPA6dsESrVZ_Z_Z9kEcUU7PchmLouBgDA:0
+[ 5693708ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://us-central1-tanesolutions-d86dc.cloudfunctions.net/getPlanUsage:0
+[ 5693708ms] [WARNING] [plan] could not fetch usage: INTERNAL @ https://demo-restaurante.tanesolutions.com/_astro/AdminTable.DRqm2xwj.js:0

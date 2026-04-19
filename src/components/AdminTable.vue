@@ -153,6 +153,9 @@
           <span v-else-if="ownPwdReset.error" style="color:#ef4444;">Error, reintentar</span>
           <span v-else>Cambiar contraseña</span>
         </button>
+        <button v-if="pwaInstallPrompt" @click="installPwa" class="pwa-install-btn" title="Instalar la app en tu dispositivo">
+          ⬇ Instalar app
+        </button>
         <button @click="logout" class="logout-btn">Cerrar sesión</button>
       </div>
     </aside>
@@ -322,6 +325,11 @@
                 </button>
               </template>
 
+              <!-- iCal export -->
+              <button @click="downloadIcal(res)" class="act-btn act-btn--ical" title="Añadir al calendario">
+                📅
+              </button>
+
               <!-- Delete — admin & superadmin only -->
               <button v-if="!isStaff" @click="deleteReserva(res)" class="act-btn act-btn--delete" title="Eliminar reserva permanentemente">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -349,7 +357,7 @@
         <div class="view-header">
           <div>
             <h3 class="view-heading">Base de Datos de Clientes</h3>
-            <p class="view-sub">{{ uniqueCustomers.length }} clientes únicos registrados</p>
+            <p class="view-sub">{{ uniqueCustomers.length }} clientes únicos · {{ marketingCount }} con consentimiento marketing</p>
           </div>
           <div class="view-actions">
             <input v-model="customerSearch" type="search"
@@ -361,6 +369,7 @@
           <table class="crm-table">
             <thead>
               <tr>
+                <th><input type="checkbox" @change="toggleSelectAll" :checked="selectedEmails.size === marketingCustomers.length && marketingCustomers.length > 0" /></th>
                 <th>Nombre</th>
                 <th>Email</th>
                 <th>Teléfono</th>
@@ -371,12 +380,16 @@
             </thead>
             <tbody>
               <tr v-for="c in filteredCustomers" :key="c.email" class="crm-row">
+                <td>
+                  <input v-if="c.marketing" type="checkbox"
+                    :checked="selectedEmails.has(c.email)"
+                    @change="toggleEmail(c.email)" />
+                  <span v-else class="no-mkt-icon" title="Sin consentimiento">—</span>
+                </td>
                 <td><strong>{{ c.nombre }}</strong></td>
                 <td class="email-cell">{{ c.email }}</td>
                 <td>{{ c.telefono || '—' }}</td>
-                <td>
-                  <span class="visit-pill">{{ c.count }}</span>
-                </td>
+                <td><span class="visit-pill">{{ c.count }}</span></td>
                 <td class="date-cell">{{ c.lastVisit }}</td>
                 <td>
                   <span :class="['marketing-pill', c.marketing ? 'marketing-pill--yes' : 'marketing-pill--no']">
@@ -386,6 +399,29 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Email marketing panel -->
+        <div class="email-mkt-panel" v-if="selectedEmails.size > 0 || emailMktSent">
+          <div class="email-mkt-header">
+            <span class="email-mkt-count">{{ selectedEmails.size }} destinatario(s) seleccionado(s)</span>
+            <button @click="selectedEmails.clear(); selectedEmails = new Set()" class="email-mkt-clear">Deseleccionar todo</button>
+          </div>
+          <div v-if="!emailMktSent" class="email-mkt-form">
+            <input v-model="emailMktSubject" type="text" placeholder="Asunto del email *" class="email-mkt-input" :disabled="emailMktSending" />
+            <textarea v-model="emailMktBody" rows="4" placeholder="Cuerpo del mensaje *&#10;Puedes usar HTML básico." class="email-mkt-textarea" :disabled="emailMktSending"></textarea>
+            <div class="email-mkt-footer">
+              <p class="email-mkt-note">📋 Solo se envía a clientes con consentimiento de marketing</p>
+              <button @click="sendMarketingEmail" :disabled="emailMktSending || !emailMktSubject.trim() || !emailMktBody.trim() || selectedEmails.size === 0" class="email-mkt-send">
+                <span v-if="emailMktSending" class="btn-spinner"></span>
+                {{ emailMktSending ? 'Enviando…' : `Enviar a ${selectedEmails.size} contacto(s)` }}
+              </button>
+            </div>
+          </div>
+          <div v-else class="email-mkt-success">
+            ✓ Email enviado correctamente a {{ emailMktSentCount }} contacto(s).
+            <button @click="resetEmailMkt" class="email-mkt-clear" style="margin-left:1rem">Nuevo envío</button>
+          </div>
         </div>
       </section>
 
@@ -688,6 +724,21 @@
                     <option value="auto">Automática — confirma si hay mesa disponible</option>
                     <option value="manual">Manual — el admin confirma siempre</option>
                   </select>
+                </div>
+                <!-- Widget color -->
+                <div class="field">
+                  <label>Color del formulario de reservas</label>
+                  <div class="color-picker-row">
+                    <input type="color" v-model="profileForm.color_widget" class="color-input" />
+                    <div class="color-presets">
+                      <button v-for="c in COLOR_PRESETS" :key="c"
+                        :style="{ background: c, outline: profileForm.color_widget === c ? '2px solid #000' : 'none' }"
+                        class="color-preset-dot" @click="profileForm.color_widget = c" :title="c">
+                      </button>
+                    </div>
+                    <span class="color-preview-text">{{ profileForm.color_widget }}</span>
+                  </div>
+                  <p class="field-hint">Color de botones y acentos en el formulario público de reservas</p>
                 </div>
                 <div class="prof-form-footer">
                   <button @click="saveProfile" :disabled="profileSaving" class="btn-primary-sm">
@@ -1243,6 +1294,20 @@ const billingPortalLoading = ref(false);
 const newPendingAlert     = ref(0);   // count of new pending since last visit
 let   _lastSeenPending    = 0;        // track to detect new ones
 
+// ─── PWA install ──────────────────────────────────
+const pwaInstallPrompt    = ref(null);
+
+// ─── Email marketing (CRM) ────────────────────────
+let   selectedEmails      = reactive(new Set());
+const emailMktSubject     = ref('');
+const emailMktBody        = ref('');
+const emailMktSending     = ref(false);
+const emailMktSent        = ref(false);
+const emailMktSentCount   = ref(0);
+
+// ─── Widget color ─────────────────────────────────
+const COLOR_PRESETS = ['#000000','#1e3a5f','#7c3aed','#dc2626','#059669','#d97706','#db2777'];
+
 // ─── Filters ─────────────────────────────────────────
 const filterDate    = ref('');   // empty = todas las fechas
 const filterStatus  = ref('todas');
@@ -1461,6 +1526,9 @@ const uniqueCustomers = computed(() => {
     }))
     .sort((a, b) => b.count - a.count);
 });
+
+const marketingCustomers = computed(() => uniqueCustomers.value.filter(c => c.marketing));
+const marketingCount     = computed(() => marketingCustomers.value.length);
 
 const filteredCustomers = computed(() => {
   if (!customerSearch.value.trim()) return uniqueCustomers.value;
@@ -1920,6 +1988,7 @@ const openProfile = async (restaurant) => {
     activo:             restaurant.activo            !== false,
     modo_confirmacion:  restaurant.modo_confirmacion || 'auto',
     pausa_emails:       restaurant.pausa_emails      === true,
+    color_widget:       restaurant.color_widget      || '#000000',
     horarios: {
       comida:    { inicio: h.comida?.inicio ?? '13:00', fin: h.comida?.fin ?? '17:00' },
       cena:      { inicio: h.cena?.inicio   ?? '20:00', fin: h.cena?.fin   ?? '00:00' },
@@ -1994,6 +2063,7 @@ const saveProfile = async () => {
       web:               profileForm.value.web       || '',
       modo_confirmacion: profileForm.value.modo_confirmacion || 'auto',
       pausa_emails:      profileForm.value.pausa_emails      === true,
+      color_widget:      profileForm.value.color_widget      || '#000000',
       horarios:          profileForm.value.horarios          ?? DEFAULT_HORARIOS,
     };
     // Plan y estado activo: solo superadmin puede modificarlos
@@ -2096,6 +2166,100 @@ const openAddUserModal = () => {
 
 const closeAddUserModal = () => {
   addUserModal.value = { show: false, email: '', role: 'admin', saving: false, result: null };
+};
+
+// ─── iCal export ─────────────────────────────────────
+const downloadIcal = (res) => {
+  const toDate = (v) => v?.toDate ? v.toDate() : new Date(v);
+  const pad    = (n) => String(n).padStart(2, '0');
+  const fmt    = (d) => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+
+  const fecha = toDate(res.fecha);
+  const [hh, mm] = (res.hora || '20:00').split(':').map(Number);
+  const start  = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), hh, mm);
+  const end    = new Date(start.getTime() + 90 * 60000); // 90 min por defecto
+
+  const ical = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tane Booking//ES',
+    'BEGIN:VEVENT',
+    `UID:${res.id}@tane-booking`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:Reserva — ${res.nombre_cliente} (${res.comensales} pax)`,
+    `DESCRIPTION:Email: ${res.email}\\nTel: ${res.telefono}\\n${res.comentarios || ''}`,
+    `LOCATION:${profileRestaurant.value?.direccion || profileRestaurant.value?.nombre || ''}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+
+  const blob = new Blob([ical], { type: 'text/calendar;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `reserva-${res.id?.slice(0,8) || 'tane'}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ─── PWA install ─────────────────────────────────────
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    pwaInstallPrompt.value = e;
+  });
+  window.addEventListener('appinstalled', () => {
+    pwaInstallPrompt.value = null;
+  });
+}
+
+const installPwa = async () => {
+  if (!pwaInstallPrompt.value) return;
+  pwaInstallPrompt.value.prompt();
+  const result = await pwaInstallPrompt.value.userChoice;
+  if (result.outcome === 'accepted') pwaInstallPrompt.value = null;
+};
+
+// ─── Email marketing (CRM) ───────────────────────────
+const toggleSelectAll = (e) => {
+  if (e.target.checked) {
+    marketingCustomers.value.forEach(c => selectedEmails.add(c.email));
+  } else {
+    selectedEmails.clear();
+  }
+};
+
+const toggleEmail = (email) => {
+  if (selectedEmails.has(email)) selectedEmails.delete(email);
+  else selectedEmails.add(email);
+};
+
+const sendMarketingEmail = async () => {
+  if (!emailMktSubject.value.trim() || !emailMktBody.value.trim()) return;
+  emailMktSending.value = true;
+  try {
+    const fn  = httpsCallable(fns, 'sendMarketingEmail');
+    const res = await fn({
+      restaurant_id: currentRestaurantId.value,
+      emails:        [...selectedEmails],
+      subject:       emailMktSubject.value.trim(),
+      body:          emailMktBody.value.trim(),
+    });
+    emailMktSentCount.value = res.data?.sent ?? selectedEmails.size;
+    emailMktSent.value      = true;
+    selectedEmails.clear();
+  } catch (e) {
+    alert('Error al enviar: ' + (e?.message || 'Error desconocido'));
+  } finally {
+    emailMktSending.value = false;
+  }
+};
+
+const resetEmailMkt = () => {
+  emailMktSent.value    = false;
+  emailMktSubject.value = '';
+  emailMktBody.value    = '';
+  emailMktSentCount.value = 0;
 };
 
 // ─── Onboarding ──────────────────────────────────────
@@ -3452,6 +3616,102 @@ const requestOwnPasswordReset = async () => {
 .ob-btn-ghost:hover { background: #f5f5f5; }
 .ob-row { display: flex; gap: 0.75rem; width: 100%; }
 .ob-row .ob-btn-primary { flex: 1; }
+
+/* ── iCal button ─────────────────────────────────── */
+.act-btn--ical {
+  background: transparent; border: 1.5px solid #d1d5db;
+  border-radius: 4px; padding: 0.35rem 0.5rem;
+  font-size: 0.9rem; cursor: pointer; line-height: 1;
+  transition: background 0.15s;
+}
+.act-btn--ical:hover { background: #f0fdf4; border-color: #16a34a; }
+
+/* ── PWA install button ───────────────────────────── */
+.pwa-install-btn {
+  width: 100%; padding: 0.5rem;
+  background: #1a1a1a; color: #aaa;
+  border: 1px solid #333; border-radius: 4px;
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.08em; cursor: pointer;
+  transition: background 0.15s; margin-bottom: 0.5rem;
+}
+.pwa-install-btn:hover { background: #222; color: #fff; }
+
+/* ── Color picker ────────────────────────────────── */
+.color-picker-row {
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.4rem;
+}
+.color-input {
+  width: 38px; height: 38px; border: 1.5px solid #e0e0e0;
+  border-radius: 4px; padding: 2px; cursor: pointer;
+}
+.color-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.color-preset-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: none; cursor: pointer;
+  outline-offset: 2px; transition: transform 0.15s;
+}
+.color-preset-dot:hover { transform: scale(1.2); }
+.color-preview-text { font-size: 0.7rem; color: #888; font-family: monospace; }
+.field-hint { font-size: 0.65rem; color: #aaa; margin-top: 0.3rem; }
+
+/* ── Email Marketing Panel ───────────────────────── */
+.email-mkt-panel {
+  margin-top: 1.5rem;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  background: #fff;
+}
+.email-mkt-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; gap: 1rem;
+}
+.email-mkt-count {
+  font-size: 0.78rem; font-weight: 700; color: #111;
+}
+.email-mkt-clear {
+  font-size: 0.68rem; font-weight: 700; color: #555;
+  background: none; border: none; cursor: pointer;
+  text-decoration: underline; padding: 0;
+}
+.email-mkt-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.email-mkt-input {
+  border: 1.5px solid #e0e0e0; border-radius: 4px;
+  padding: 0.625rem 0.875rem; font-size: 0.85rem;
+  font-family: inherit; outline: none;
+  transition: border-color 0.15s;
+}
+.email-mkt-input:focus { border-color: #000; }
+.email-mkt-textarea {
+  border: 1.5px solid #e0e0e0; border-radius: 4px;
+  padding: 0.625rem 0.875rem; font-size: 0.82rem;
+  font-family: inherit; resize: vertical; outline: none;
+  transition: border-color 0.15s; min-height: 100px;
+}
+.email-mkt-textarea:focus { border-color: #000; }
+.email-mkt-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+}
+.email-mkt-note { font-size: 0.68rem; color: #aaa; }
+.email-mkt-send {
+  display: flex; align-items: center; gap: 0.4rem;
+  background: #000; color: #fff;
+  border: none; border-radius: 4px;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.73rem; font-weight: 800;
+  letter-spacing: 0.08em; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.email-mkt-send:hover:not(:disabled) { opacity: 0.82; }
+.email-mkt-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.email-mkt-success {
+  font-size: 0.82rem; color: #166534;
+  background: #f0fdf4; padding: 1rem;
+  border-radius: 6px; font-weight: 600;
+}
+.no-mkt-icon { color: #ddd; font-size: 0.8rem; }
 
 /* ── Billing Portal ──────────────────────────────── */
 .plan-self-serve {

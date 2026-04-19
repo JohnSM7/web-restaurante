@@ -845,3 +845,78 @@ exports.createBillingPortalSession = onCall(async (request) => {
   console.log(`[billingPortal] session for ${restaurantId}`);
   return { url: session.url };
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CALLABLE: sendMarketingEmail
+// Admin sends a bulk email to selected CRM customers who gave marketing consent.
+// Server validates consent flag before sending each email.
+// ─────────────────────────────────────────────────────────────────────────────
+exports.sendMarketingEmail = onCall(async (request) => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+  const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+  const caller     = callerSnap.exists ? callerSnap.data() : null;
+  if (!caller || !["admin", "superadmin"].includes(caller.role))
+    throw new HttpsError("permission-denied", "No tienes permisos.");
+
+  const restaurantId = caller.role === "superadmin"
+    ? (request.data.restaurant_id || caller.restaurant_id)
+    : caller.restaurant_id;
+
+  const { emails, subject, body } = request.data;
+  if (!Array.isArray(emails) || emails.length === 0)
+    throw new HttpsError("invalid-argument", "No hay destinatarios.");
+  if (!subject?.trim() || !body?.trim())
+    throw new HttpsError("invalid-argument", "Asunto y cuerpo son obligatorios.");
+  if (emails.length > 200)
+    throw new HttpsError("resource-exhausted", "Máximo 200 destinatarios por envío.");
+
+  // Load restaurant for branding
+  const restaurant = await getRestauranteData(restaurantId);
+
+  // Verify marketing consent for each email via reservations
+  const snap = await db.collection("reservas")
+    .where("restaurant_id", "==", restaurantId)
+    .where("marketing_consent", "==", true)
+    .get();
+  const consentedEmails = new Set(snap.docs.map(d => d.data().email?.toLowerCase()));
+
+  // Filter to only consented recipients
+  const recipients = emails.filter(e => consentedEmails.has(e.toLowerCase()));
+  if (recipients.length === 0)
+    throw new HttpsError("failed-precondition", "Ningún destinatario tiene consentimiento de marketing.");
+
+  // Send in batches of 50 (Resend batch limit)
+  let sent = 0;
+  const htmlBody = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#000;color:#fff;padding:24px 32px">
+        <h1 style="margin:0;font-size:1.1rem;font-weight:700;letter-spacing:0.15em">${restaurant.nombre}</h1>
+      </div>
+      <div style="padding:32px;color:#333;line-height:1.7">
+        ${body.replace(/\n/g, "<br>")}
+      </div>
+      <div style="padding:16px 32px;border-top:1px solid #eee;font-size:0.7rem;color:#aaa">
+        Has recibido este email porque reservaste en ${restaurant.nombre} y aceptaste recibir comunicaciones.
+        Este email fue enviado a través de Tane Booking.
+      </div>
+    </div>`;
+
+  for (let i = 0; i < recipients.length; i += 50) {
+    const batch = recipients.slice(i, i + 50);
+    try {
+      await resend.emails.send({
+        from:    FROM_EMAIL,
+        to:      batch,
+        subject: subject.trim(),
+        html:    htmlBody,
+      });
+      sent += batch.length;
+    } catch (e) {
+      console.error("[sendMarketingEmail] batch error:", e.message);
+    }
+  }
+
+  console.log(`[sendMarketingEmail] sent to ${sent}/${recipients.length} for ${restaurantId}`);
+  return { sent, total: recipients.length };
+});
