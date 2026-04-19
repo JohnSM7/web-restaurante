@@ -1,44 +1,50 @@
-// Tane Booking — Service Worker v1
-// Caches static assets for offline access to the admin panel shell
+// Tane Booking — Service Worker v2
+// Bump CACHE_VERSION con cada deploy para limpiar caché obsoleta
 
-const CACHE_NAME = 'tane-v1';
+const CACHE_VERSION = 'tane-v2';
 const SHELL_URLS = [
-  '/admin/dashboard',
+  '/admin/dashboard/',
   '/manifest.json',
 ];
 
-// ── Install: pre-cache shell ──────────────────────────────
+// ── Install ───────────────────────────────────────────
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_URLS))
+    caches.open(CACHE_VERSION).then(cache => cache.addAll(SHELL_URLS))
   );
   self.skipWaiting();
 });
 
-// ── Activate: clean old caches ────────────────────────────
+// ── Activate: limpia TODAS las cachés antiguas ────────
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE_VERSION).map(k => {
+        console.log('[SW] Eliminando caché antigua:', k);
+        return caches.delete(k);
+      }))
     )
   );
   self.clients.claim();
 });
 
-// ── Fetch: network-first, fallback to cache ───────────────
+// ── Fetch: network-first, fallback a caché ────────────
 self.addEventListener('fetch', (e) => {
-  // Skip non-GET requests and Firebase / CDN calls
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.hostname !== self.location.hostname) return;
 
+  // NO cachear el dashboard HTML para evitar servir versión obsoleta
+  if (url.pathname.startsWith('/admin/')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        // Cache successful responses for static assets
-        if (res.ok && (url.pathname.match(/\.(js|css|woff2?|png|svg|ico)$/) || SHELL_URLS.includes(url.pathname))) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        if (res.ok && url.pathname.match(/\.(js|css|woff2?|png|svg|ico|webp)$/)) {
+          caches.open(CACHE_VERSION).then(c => c.put(e.request, res.clone()));
         }
         return res;
       })
@@ -46,7 +52,7 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// ── Push notifications ────────────────────────────────────
+// ── Push notifications ────────────────────────────────
 self.addEventListener('push', (e) => {
   if (!e.data) return;
   const data = e.data.json();
@@ -55,7 +61,7 @@ self.addEventListener('push', (e) => {
       body:    data.body  || 'Nueva notificación',
       icon:    '/favicon.svg',
       badge:   '/favicon.svg',
-      data:    data.url   || '/admin/dashboard',
+      data:    data.url   || '/admin/dashboard/',
       vibrate: [200, 100, 200],
     })
   );

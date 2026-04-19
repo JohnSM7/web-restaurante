@@ -1,0 +1,85 @@
+---
+/**
+ * Demo Landing — The Editorial Restaurante
+ * Página de demostración del producto para hostelería.
+ * Accesible en /demo-landing
+ */
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import SobreNosotros from '../components/SobreNosotros.astro';
+import Carta from '../components/Carta.astro';
+import Experiencia from '../components/Experiencia.astro';
+import Reservas from '../components/Reservas.astro';
+import Testimonios from '../components/Testimonios.astro';
+import Ubicacion from '../components/Ubicacion.astro';
+import Blog from '../components/Blog.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="The Editorial — Demo web para restaurantes · Tane Solutions"
+  description="Demo de web para restaurante mediterráneo desarrollada con Tane Solutions. Reservas online, carta digital, galería y más."
+  canonical="https://demo-restaurante.tanesolutions.com/demo-landing"
+>
+  <!-- Banner demo -->
+  <div class="demo-banner">
+    <span>🍽️ Esta es una demo de web para restaurantes por</span>
+    <a href="/" class="demo-link">Tane Solutions</a>
+    <a href="/registro" class="demo-cta">Crear mi web gratis →</a>
+  </div>
+
+  <Nav />
+  <main id="main-content">
+    <Hero />
+    <SobreNosotros />
+    <Carta />
+    <Experiencia />
+    <Reservas />
+    <Testimonios />
+    <Blog />
+    <Ubicacion />
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .demo-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: #111;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .demo-link {
+    color: #a78bfa;
+    text-decoration: none;
+  }
+  .demo-link:hover { text-decoration: underline; }
+  .demo-cta {
+    background: #7c3aed;
+    color: #fff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 0.72rem;
+    transition: background 0.15s;
+  }
+  .demo-cta:hover { background: #6d28d9; }
+
+  /* Empujar el contenido para que no quede bajo el banner */
+  :global(#main-nav), :global(body > nav:first-of-type) {
+    top: 2.2rem !important;
+  }
+</style>
