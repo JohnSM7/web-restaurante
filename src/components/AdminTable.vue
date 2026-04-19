@@ -1321,7 +1321,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import {
   collection, query, where, orderBy,
   onSnapshot, updateDoc, doc, deleteDoc,
